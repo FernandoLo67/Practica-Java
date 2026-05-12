@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS clientes (
     id               INT           PRIMARY KEY AUTO_INCREMENT,
     nombre           VARCHAR(100)  NOT NULL,
     apellido         VARCHAR(100)  NOT NULL,
-    tipo_documento   ENUM('DNI','PASAPORTE','CEDULA') DEFAULT 'DNI',
+    tipo_documento   ENUM('DPI','PASAPORTE','CEDULA') DEFAULT 'DPI',
     documento        VARCHAR(20)   NOT NULL UNIQUE,
     telefono         VARCHAR(20),
     email            VARCHAR(100),
@@ -175,11 +175,11 @@ INSERT INTO usuarios (nombre, usuario, password, rol) VALUES
 -- DATOS DE PRUEBA: Clientes de ejemplo
 -- ============================================================
 INSERT INTO clientes (nombre, apellido, tipo_documento, documento, telefono, email, nacionalidad) VALUES
-('Juan Carlos',  'García López',     'DNI',       '12345678', '999-111-222', 'juan@email.com',   'Peruana'),
-('María Elena',  'Torres Vega',      'DNI',       '87654321', '999-333-444', 'maria@email.com',  'Peruana'),
+('Juan Carlos',  'García López',     'DPI',       '12345678', '999-111-222', 'juan@email.com',   'Peruana'),
+('María Elena',  'Torres Vega',      'DPI',       '87654321', '999-333-444', 'maria@email.com',  'Peruana'),
 ('John',         'Smith',            'PASAPORTE', 'US123456', '999-555-666', 'john@email.com',   'Americana'),
 ('Ana',          'Martínez Ruiz',    'CEDULA',    'COL98765', '999-777-888', 'ana@email.com',    'Colombiana'),
-('Pedro',        'Sánchez Castro',   'DNI',       '11223344', '999-999-000', 'pedro@email.com',  'Peruana');
+('Pedro',        'Sánchez Castro',   'DPI',       '11223344', '999-999-000', 'pedro@email.com',  'Peruana');
 
 -- ============================================================
 -- VISTA útil: Disponibilidad de habitaciones

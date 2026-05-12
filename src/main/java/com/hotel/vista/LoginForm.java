@@ -65,7 +65,7 @@ public class LoginForm extends JFrame {
     private void configurarVentana() {
         setTitle("Hotel Sistema - Iniciar Sesión");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(430, 520);
+        setSize(430, 600);
         setLocationRelativeTo(null);  // Centra la ventana en la pantalla
         setResizable(false);
     }
@@ -106,7 +106,7 @@ public class LoginForm extends JFrame {
 
         JLabel lblSubtitulo = new JLabel("Sistema de Administración");
         lblSubtitulo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lblSubtitulo.setForeground(new Color(180, 195, 255));
+        lblSubtitulo.setForeground(COLOR_ACENTO);
         lblSubtitulo.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         panel.add(lblIcono);
@@ -123,83 +123,104 @@ public class LoginForm extends JFrame {
      * Crea el panel del formulario (tarjeta blanca con campos y botón).
      */
     private JPanel crearPanelFormulario() {
-        // Contenedor externo con padding
-        JPanel contenedor = new JPanel(new BorderLayout());
+        // Contenedor externo — centra la tarjeta con GridBagLayout
+        JPanel contenedor = new JPanel(new GridBagLayout());
         contenedor.setBackground(COLOR_PRIMARIO);
-        contenedor.setBorder(new EmptyBorder(0, 28, 35, 28));
+        contenedor.setBorder(new EmptyBorder(0, 24, 30, 24));
 
-        // Tarjeta blanca
-        JPanel tarjeta = new JPanel();
-        tarjeta.setLayout(new BoxLayout(tarjeta, BoxLayout.Y_AXIS));
+        // Tarjeta blanca con GridBagLayout para control total
+        JPanel tarjeta = new JPanel(new GridBagLayout());
         tarjeta.setBackground(Color.WHITE);
         tarjeta.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(215, 220, 240), 1),
-            new EmptyBorder(28, 28, 28, 28)
+            new EmptyBorder(28, 32, 28, 32)
         ));
 
-        // --- Título de la tarjeta ---
-        JLabel lblIngresar = new JLabel("Iniciar Sesión");
-        lblIngresar.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        GridBagConstraints g = new GridBagConstraints();
+        g.gridx = 0; g.gridy = 0;
+        g.fill = GridBagConstraints.HORIZONTAL;
+        g.weightx = 1.0;
+        g.insets = new Insets(0, 0, 0, 0);
+
+        // --- Título centrado ---
+        JLabel lblIngresar = new JLabel("Iniciar Sesión", SwingConstants.CENTER);
+        lblIngresar.setFont(new Font("Segoe UI", Font.BOLD, 20));
         lblIngresar.setForeground(COLOR_PRIMARIO);
-        lblIngresar.setAlignmentX(Component.CENTER_ALIGNMENT);
-        tarjeta.add(lblIngresar);
-        tarjeta.add(Box.createVerticalStrut(22));
+        tarjeta.add(lblIngresar, g);
 
-        // --- Campo: Usuario ---
-        tarjeta.add(crearEtiquetaCampo("Usuario"));
-        tarjeta.add(Box.createVerticalStrut(5));
+        // --- Etiqueta Usuario ---
+        g.gridy++; g.insets = new Insets(22, 0, 5, 0);
+        JLabel lblUser = new JLabel("Usuario");
+        lblUser.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblUser.setForeground(COLOR_TEXTO);
+        tarjeta.add(lblUser, g);
+
+        // --- Campo Usuario ---
+        g.gridy++; g.insets = new Insets(0, 0, 0, 0);
         txtUsuario = new JTextField();
-        estilizarCampo(txtUsuario);
-        tarjeta.add(txtUsuario);
-        tarjeta.add(Box.createVerticalStrut(16));
+        txtUsuario.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtUsuario.setPreferredSize(new Dimension(300, 40));
+        txtUsuario.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(190, 195, 220), 1),
+            BorderFactory.createEmptyBorder(5, 12, 5, 12)
+        ));
+        tarjeta.add(txtUsuario, g);
 
-        // --- Campo: Contraseña ---
-        tarjeta.add(crearEtiquetaCampo("Contraseña"));
-        tarjeta.add(Box.createVerticalStrut(5));
+        // --- Etiqueta Contraseña ---
+        g.gridy++; g.insets = new Insets(16, 0, 5, 0);
+        JLabel lblPass = new JLabel("Contraseña");
+        lblPass.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblPass.setForeground(COLOR_TEXTO);
+        tarjeta.add(lblPass, g);
+
+        // --- Campo Contraseña ---
+        g.gridy++; g.insets = new Insets(0, 0, 0, 0);
         txtPassword = new JPasswordField();
-        estilizarCampo(txtPassword);
-        tarjeta.add(txtPassword);
-        tarjeta.add(Box.createVerticalStrut(8));
+        txtPassword.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtPassword.setPreferredSize(new Dimension(300, 40));
+        txtPassword.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(190, 195, 220), 1),
+            BorderFactory.createEmptyBorder(5, 12, 5, 12)
+        ));
+        tarjeta.add(txtPassword, g);
 
-        // --- Checkbox mostrar contraseña ---
+        // --- Checkbox centrado ---
+        g.gridy++; g.insets = new Insets(8, 0, 0, 0);
         chkMostrarPass = new JCheckBox("Mostrar contraseña");
         chkMostrarPass.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         chkMostrarPass.setForeground(new Color(100, 100, 120));
         chkMostrarPass.setBackground(Color.WHITE);
-        chkMostrarPass.setAlignmentX(Component.LEFT_ALIGNMENT);
+        chkMostrarPass.setHorizontalAlignment(SwingConstants.CENTER);
         chkMostrarPass.addActionListener(e -> toggleMostrarPassword());
-        tarjeta.add(chkMostrarPass);
-        tarjeta.add(Box.createVerticalStrut(18));
+        tarjeta.add(chkMostrarPass, g);
 
-        // --- Etiqueta de mensaje (error / éxito) ---
-        lblMensaje = new JLabel(" ");
+        // --- Mensaje error/éxito centrado ---
+        g.gridy++; g.insets = new Insets(14, 0, 4, 0);
+        lblMensaje = new JLabel(" ", SwingConstants.CENTER);
         lblMensaje.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblMensaje.setForeground(COLOR_ERROR);
-        lblMensaje.setAlignmentX(Component.CENTER_ALIGNMENT);
-        tarjeta.add(lblMensaje);
-        tarjeta.add(Box.createVerticalStrut(10));
+        tarjeta.add(lblMensaje, g);
 
-        // --- Botón Login ---
-        btnLogin = new JButton("INGRESAR");
+        // --- Botón Aceptar ---
+        g.gridy++; g.insets = new Insets(6, 0, 0, 0);
+        btnLogin = new JButton("Aceptar");
         estilizarBoton(btnLogin);
         btnLogin.addActionListener(e -> realizarLogin());
-        tarjeta.add(btnLogin);
+        tarjeta.add(btnLogin, g);
 
-        // --- Atajo: Enter en contraseña dispara el login ---
+        // Atajos de teclado
         txtPassword.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
+            @Override public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) realizarLogin();
             }
         });
         txtUsuario.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
+            @Override public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) txtPassword.requestFocus();
             }
         });
 
-        contenedor.add(tarjeta, BorderLayout.CENTER);
+        contenedor.add(tarjeta);
         return contenedor;
     }
 
@@ -230,7 +251,9 @@ public class LoginForm extends JFrame {
         boton.setFont(new Font("Segoe UI", Font.BOLD, 14));
         boton.setForeground(Color.WHITE);
         boton.setBackground(COLOR_PRIMARIO);
-        boton.setPreferredSize(new Dimension(Integer.MAX_VALUE, 44));
+        boton.setOpaque(true);
+        boton.setBorderPainted(false);
+        boton.setPreferredSize(new Dimension(340, 44));
         boton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
         boton.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
         boton.setFocusPainted(false);
@@ -320,7 +343,7 @@ public class LoginForm extends JFrame {
 
                 // Rehabilitar el botón
                 btnLogin.setEnabled(true);
-                btnLogin.setText("INGRESAR");
+                btnLogin.setText("Aceptar");
             }
 
         } catch (Exception ex) {

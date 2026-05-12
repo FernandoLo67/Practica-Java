@@ -270,6 +270,8 @@ public class ClientesPanel extends JPanel {
         btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btn.setForeground(Color.WHITE);
         btn.setBackground(color);
+        btn.setOpaque(true);
+        btn.setBorderPainted(false);
         btn.setBorder(new EmptyBorder(8, 14, 8, 14));
         btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));

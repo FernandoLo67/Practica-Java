@@ -122,13 +122,34 @@ public class MenuPrincipal extends JFrame {
         lblUsuarioInfo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         lblUsuarioInfo.setForeground(new Color(90, 95, 120));
 
-        JButton btnCerrar = new JButton("Cerrar Sesión");
-        btnCerrar.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        JButton btnCerrar = new JButton("⏻  Cerrar Sesión");
+        btnCerrar.setFont(new Font("Segoe UI", Font.BOLD, 13));
         btnCerrar.setForeground(Color.WHITE);
         btnCerrar.setBackground(new Color(198, 40, 40));
-        btnCerrar.setBorder(new EmptyBorder(6, 14, 6, 14));
+        btnCerrar.setOpaque(true);
+        btnCerrar.setBorderPainted(false);
+        btnCerrar.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(150, 20, 20), 1),
+            new EmptyBorder(7, 18, 7, 18)
+        ));
         btnCerrar.setFocusPainted(false);
         btnCerrar.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnCerrar.addMouseListener(new MouseAdapter() {
+            @Override public void mouseEntered(MouseEvent e) {
+                btnCerrar.setBackground(new Color(229, 57, 53));
+                btnCerrar.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(183, 28, 28), 2),
+                    new EmptyBorder(6, 17, 6, 17)
+                ));
+            }
+            @Override public void mouseExited(MouseEvent e) {
+                btnCerrar.setBackground(new Color(198, 40, 40));
+                btnCerrar.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(150, 20, 20), 1),
+                    new EmptyBorder(7, 18, 7, 18)
+                ));
+            }
+        });
         btnCerrar.addActionListener(e -> cerrarSesion());
 
         panelDerecho.add(lblUsuarioInfo);
@@ -201,6 +222,8 @@ public class MenuPrincipal extends JFrame {
         btn.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         btn.setForeground(new Color(220, 225, 255));
         btn.setBackground(COLOR_SIDEBAR);
+        btn.setOpaque(true);
+        btn.setBorderPainted(false);
         btn.setBorder(new EmptyBorder(11, 18, 11, 18));
         btn.setHorizontalAlignment(SwingConstants.LEFT);
         btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));

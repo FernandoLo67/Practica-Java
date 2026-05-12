@@ -157,7 +157,7 @@ public class ClienteFormDialog extends JDialog {
         gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0;
         panel.add(crearEtiqueta("Tipo Doc. *"), gbc);
         gbc.gridx = 1; gbc.weightx = 1;
-        cmbTipoDocumento = new JComboBox<>(new String[]{"DNI", "PASAPORTE", "CEDULA"});
+        cmbTipoDocumento = new JComboBox<>(new String[]{"DPI", "PASAPORTE", "CEDULA"});
         cmbTipoDocumento.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         cmbTipoDocumento.setPreferredSize(new Dimension(0, 35));
         panel.add(cmbTipoDocumento, gbc);
