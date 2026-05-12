@@ -121,23 +121,4 @@ src/main/java/com/hotel/
 
 ---
 
-## 🛠️ Solución de errores comunes
-
-**`Communications link failure`**
-→ MySQL no está corriendo. Abre el panel de **Servicios de Windows** y arranca `MySQL80`.
-
-**`Access denied for user 'root'`**
-→ Contraseña incorrecta en `ConexionDB.java`.
-
-**`Unknown database 'hotel_sistema'`**
-→ No ejecutaste el script SQL. Repite el Paso 1.
-
-**`Driver MySQL no encontrado`**
-→ Haz **Clean and Build** en NetBeans para que Maven descargue el conector.
-
----
-
-## 👨‍💻 Autor
-
-**Fernando** — Proyecto universitario de programación Java  
 Desarrollado con Java 11 + NetBeans 16 + MySQL 8
