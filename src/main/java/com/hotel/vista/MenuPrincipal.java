@@ -285,9 +285,9 @@ public class MenuPrincipal extends JFrame {
                 panelContenido.add(clientesPanel, BorderLayout.CENTER);
                 break;
             case "habitaciones":
-                // TODO Módulo 3
-                mostrarProximamente("🛏 Gestión de Habitaciones",
-                    "Aquí podrás ver el estado de todas las habitaciones y administrarlas.");
+                // Módulo 3: Panel de Gestión de Habitaciones
+                HabitacionesPanel habitacionesPanel = new HabitacionesPanel((Frame) SwingUtilities.getWindowAncestor(this));
+                panelContenido.add(habitacionesPanel, BorderLayout.CENTER);
                 break;
             case "reservaciones":
                 // TODO Módulo 4
