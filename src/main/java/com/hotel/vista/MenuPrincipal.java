@@ -3,6 +3,7 @@ package com.hotel.vista;
 import com.hotel.modelo.Usuario;
 
 import javax.swing.*;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.*;
@@ -256,9 +257,9 @@ public class MenuPrincipal extends JFrame {
                 mostrarDashboard();
                 break;
             case "clientes":
-                // TODO Módulo 2: se implementará en el siguiente módulo
-                mostrarProximamente("👥 Gestión de Clientes",
-                    "Aquí podrás registrar, buscar y editar clientes del hotel.");
+                // Módulo 2: Panel de Gestión de Clientes
+                ClientesPanel clientesPanel = new ClientesPanel((Frame) SwingUtilities.getWindowAncestor(this));
+                panelContenido.add(clientesPanel, BorderLayout.CENTER);
                 break;
             case "habitaciones":
                 // TODO Módulo 3
