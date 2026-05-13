@@ -4,6 +4,8 @@ import com.hotel.dao.UsuarioDAO;
 import com.hotel.modelo.Usuario;
 import com.hotel.util.ConexionDB;
 import com.hotel.util.PasswordUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -27,6 +29,8 @@ import java.util.List;
  * @version 2.0 - BCrypt password hashing
  */
 public class UsuarioDAOImpl implements UsuarioDAO {
+
+    private static final Logger log = LoggerFactory.getLogger(UsuarioDAOImpl.class);
 
     // =========================================================
     // CONSULTAS SQL
@@ -100,7 +104,7 @@ public class UsuarioDAOImpl implements UsuarioDAO {
             }
 
         } catch (SQLException e) {
-            System.err.println("Error en autenticar(): " + e.getMessage());
+            log.error("Error en autenticar(): " + e.getMessage());
         }
 
         return null; // null = credenciales incorrectas o error
@@ -124,7 +128,7 @@ public class UsuarioDAOImpl implements UsuarioDAO {
             }
 
         } catch (SQLException e) {
-            System.err.println("Error en buscarPorId(): " + e.getMessage());
+            log.error("Error en buscarPorId(): " + e.getMessage());
         }
         return null;
     }
@@ -142,7 +146,7 @@ public class UsuarioDAOImpl implements UsuarioDAO {
             }
 
         } catch (SQLException e) {
-            System.err.println("Error en listarTodos(): " + e.getMessage());
+            log.error("Error en listarTodos(): " + e.getMessage());
         }
 
         return lista;
@@ -182,7 +186,7 @@ public class UsuarioDAOImpl implements UsuarioDAO {
             }
 
         } catch (SQLException e) {
-            System.err.println("Error en guardar(): " + e.getMessage());
+            log.error("Error en guardar(): " + e.getMessage());
         }
         return false;
     }
@@ -205,7 +209,7 @@ public class UsuarioDAOImpl implements UsuarioDAO {
             return ps.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            System.err.println("Error en actualizar(): " + e.getMessage());
+            log.error("Error en actualizar(): " + e.getMessage());
         }
         return false;
     }
@@ -225,7 +229,7 @@ public class UsuarioDAOImpl implements UsuarioDAO {
             return ps.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            System.err.println("Error en actualizarPassword(): " + e.getMessage());
+            log.error("Error en actualizarPassword(): " + e.getMessage());
         }
         return false;
     }
@@ -244,7 +248,7 @@ public class UsuarioDAOImpl implements UsuarioDAO {
             }
 
         } catch (SQLException e) {
-            System.err.println("Error en existeUsuario(): " + e.getMessage());
+            log.error("Error en existeUsuario(): " + e.getMessage());
         }
         return false;
     }

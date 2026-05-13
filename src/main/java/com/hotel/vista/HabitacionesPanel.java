@@ -52,15 +52,16 @@ public class HabitacionesPanel extends JPanel {
     // =========================================================
     // COLORES
     // =========================================================
-    private static final Color COLOR_PRIMARIO     = new Color(26, 35, 126);
-    private static final Color COLOR_FONDO        = new Color(243, 246, 253);
-    private static final Color COLOR_HEADER       = new Color(232, 236, 255);
-    private static final Color COLOR_DISPONIBLE   = new Color(46, 125, 50);
-    private static final Color COLOR_OCUPADA      = new Color(198, 40, 40);
-    private static final Color COLOR_RESERVADA    = new Color(230, 81, 0);
-    private static final Color COLOR_MANTENIMIENTO= new Color(100, 100, 100);
-    private static final Color COLOR_FILA_PAR     = Color.WHITE;
-    private static final Color COLOR_FILA_IMPAR   = new Color(248, 250, 255);
+    // Colores delegados a Tema.java (punto único de verdad)
+    private static final Color COLOR_PRIMARIO      = com.hotel.util.Tema.COLOR_PRIMARIO;
+    private static final Color COLOR_FONDO         = com.hotel.util.Tema.COLOR_FONDO;
+    private static final Color COLOR_HEADER        = com.hotel.util.Tema.COLOR_HEADER_TABLA;
+    private static final Color COLOR_DISPONIBLE    = com.hotel.util.Tema.COLOR_DISPONIBLE;
+    private static final Color COLOR_OCUPADA       = com.hotel.util.Tema.COLOR_OCUPADA;
+    private static final Color COLOR_RESERVADA     = com.hotel.util.Tema.COLOR_RESERVADA;
+    private static final Color COLOR_MANTENIMIENTO = com.hotel.util.Tema.COLOR_MANTENIMIENTO;
+    private static final Color COLOR_FILA_PAR      = com.hotel.util.Tema.COLOR_FILA_PAR;
+    private static final Color COLOR_FILA_IMPAR    = com.hotel.util.Tema.COLOR_FILA_IMPAR;
 
     private static final String[] COLUMNAS = {
         "ID", "N°", "Piso", "Tipo", "Estado", "Precio/Noche", "Capacidad", "Descripción"

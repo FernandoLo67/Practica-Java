@@ -4,6 +4,8 @@ import com.hotel.dao.HabitacionDAO;
 import com.hotel.modelo.Habitacion;
 import com.hotel.modelo.TipoHabitacion;
 import com.hotel.util.ConexionDB;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -19,6 +21,8 @@ import java.util.List;
  * @version 1.0
  */
 public class HabitacionDAOImpl implements HabitacionDAO {
+
+    private static final Logger log = LoggerFactory.getLogger(HabitacionDAOImpl.class);
 
     // =========================================================
     // CONSULTAS SQL
@@ -77,7 +81,7 @@ public class HabitacionDAOImpl implements HabitacionDAO {
             while (rs.next()) lista.add(mapear(rs));
 
         } catch (SQLException e) {
-            System.err.println("Error en listarTodas(): " + e.getMessage());
+            log.error("Error en listarTodas(): " + e.getMessage());
         }
         return lista;
     }
@@ -92,7 +96,7 @@ public class HabitacionDAOImpl implements HabitacionDAO {
             while (rs.next()) lista.add(mapear(rs));
 
         } catch (SQLException e) {
-            System.err.println("Error en listarDisponibles(): " + e.getMessage());
+            log.error("Error en listarDisponibles(): " + e.getMessage());
         }
         return lista;
     }
@@ -113,7 +117,7 @@ public class HabitacionDAOImpl implements HabitacionDAO {
                 while (rs.next()) lista.add(mapear(rs));
             }
         } catch (SQLException e) {
-            System.err.println("Error en buscar(): " + e.getMessage());
+            log.error("Error en buscar(): " + e.getMessage());
         }
         return lista;
     }
@@ -128,7 +132,7 @@ public class HabitacionDAOImpl implements HabitacionDAO {
                 if (rs.next()) return mapear(rs);
             }
         } catch (SQLException e) {
-            System.err.println("Error en buscarPorId(): " + e.getMessage());
+            log.error("Error en buscarPorId(): " + e.getMessage());
         }
         return null;
     }
@@ -153,7 +157,7 @@ public class HabitacionDAOImpl implements HabitacionDAO {
                 return true;
             }
         } catch (SQLException e) {
-            System.err.println("Error en guardar(): " + e.getMessage());
+            log.error("Error en guardar(): " + e.getMessage());
         }
         return false;
     }
@@ -172,7 +176,7 @@ public class HabitacionDAOImpl implements HabitacionDAO {
 
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            System.err.println("Error en actualizar(): " + e.getMessage());
+            log.error("Error en actualizar(): " + e.getMessage());
         }
         return false;
     }
@@ -187,7 +191,7 @@ public class HabitacionDAOImpl implements HabitacionDAO {
             return ps.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            System.err.println("Error en cambiarEstado(): " + e.getMessage());
+            log.error("Error en cambiarEstado(): " + e.getMessage());
         }
         return false;
     }
@@ -200,7 +204,7 @@ public class HabitacionDAOImpl implements HabitacionDAO {
 
             if (rs.next()) return rs.getInt(1);
         } catch (SQLException e) {
-            System.err.println("Error en contarTodas(): " + e.getMessage());
+            log.error("Error en contarTodas(): " + e.getMessage());
         }
         return 0;
     }
@@ -215,7 +219,7 @@ public class HabitacionDAOImpl implements HabitacionDAO {
                 if (rs.next()) return rs.getInt(1);
             }
         } catch (SQLException e) {
-            System.err.println("Error en contarPorEstado(): " + e.getMessage());
+            log.error("Error en contarPorEstado(): " + e.getMessage());
         }
         return 0;
     }

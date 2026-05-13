@@ -3,6 +3,8 @@ package com.hotel.dao.impl;
 import com.hotel.dao.ClienteDAO;
 import com.hotel.modelo.Cliente;
 import com.hotel.util.ConexionDB;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -18,6 +20,8 @@ import java.util.List;
  * @version 1.0
  */
 public class ClienteDAOImpl implements ClienteDAO {
+
+    private static final Logger log = LoggerFactory.getLogger(ClienteDAOImpl.class);
 
     // =========================================================
     // CONSULTAS SQL
@@ -67,7 +71,7 @@ public class ClienteDAOImpl implements ClienteDAO {
                 lista.add(mapearCliente(rs));
             }
         } catch (SQLException e) {
-            System.err.println("Error en listarTodos(): " + e.getMessage());
+            log.error("Error en listarTodos()", e);
         }
         return lista;
     }
@@ -93,7 +97,7 @@ public class ClienteDAOImpl implements ClienteDAO {
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Error en buscar(): " + e.getMessage());
+            log.error("Error en buscar()", e);
         }
         return lista;
     }
@@ -108,7 +112,7 @@ public class ClienteDAOImpl implements ClienteDAO {
                 if (rs.next()) return mapearCliente(rs);
             }
         } catch (SQLException e) {
-            System.err.println("Error en buscarPorId(): " + e.getMessage());
+            log.error("Error en buscarPorId()", e);
         }
         return null;
     }
@@ -123,7 +127,7 @@ public class ClienteDAOImpl implements ClienteDAO {
                 if (rs.next()) return mapearCliente(rs);
             }
         } catch (SQLException e) {
-            System.err.println("Error en buscarPorDocumento(): " + e.getMessage());
+            log.error("Error en buscarPorDocumento()", e);
         }
         return null;
     }
@@ -151,7 +155,7 @@ public class ClienteDAOImpl implements ClienteDAO {
                 return true;
             }
         } catch (SQLException e) {
-            System.err.println("Error en guardar(): " + e.getMessage());
+            log.error("Error en guardar()", e);
         }
         return false;
     }
@@ -173,7 +177,7 @@ public class ClienteDAOImpl implements ClienteDAO {
 
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            System.err.println("Error en actualizar(): " + e.getMessage());
+            log.error("Error en actualizar()", e);
         }
         return false;
     }
@@ -188,7 +192,7 @@ public class ClienteDAOImpl implements ClienteDAO {
 
         } catch (SQLException e) {
             // Si tiene reservaciones asociadas, MySQL lanzará error de FK
-            System.err.println("Error en eliminar(): " + e.getMessage());
+            log.error("Error en eliminar()", e);
         }
         return false;
     }
@@ -202,7 +206,7 @@ public class ClienteDAOImpl implements ClienteDAO {
             if (rs.next()) return rs.getInt(1);
 
         } catch (SQLException e) {
-            System.err.println("Error en contarTodos(): " + e.getMessage());
+            log.error("Error en contarTodos()", e);
         }
         return 0;
     }

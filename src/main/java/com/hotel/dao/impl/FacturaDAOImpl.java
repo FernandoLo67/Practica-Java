@@ -3,6 +3,8 @@ package com.hotel.dao.impl;
 import com.hotel.dao.FacturaDAO;
 import com.hotel.modelo.*;
 import com.hotel.util.ConexionDB;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -15,6 +17,8 @@ import java.util.List;
  * @version 1.0
  */
 public class FacturaDAOImpl implements FacturaDAO {
+
+    private static final Logger log = LoggerFactory.getLogger(FacturaDAOImpl.class);
 
     private static final String SQL_BASE =
         "SELECT f.id, f.fecha_emision, f.subtotal, f.impuesto, f.total, " +
@@ -59,7 +63,7 @@ public class FacturaDAOImpl implements FacturaDAO {
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) lista.add(mapear(rs));
         } catch (SQLException e) {
-            System.err.println("Error en listarTodas(): " + e.getMessage());
+            log.error("Error en listarTodas(): " + e.getMessage());
         }
         return lista;
     }
@@ -73,7 +77,7 @@ public class FacturaDAOImpl implements FacturaDAO {
                 if (rs.next()) return mapear(rs);
             }
         } catch (SQLException e) {
-            System.err.println("Error en buscarPorId(): " + e.getMessage());
+            log.error("Error en buscarPorId(): " + e.getMessage());
         }
         return null;
     }
@@ -87,7 +91,7 @@ public class FacturaDAOImpl implements FacturaDAO {
                 if (rs.next()) return mapear(rs);
             }
         } catch (SQLException e) {
-            System.err.println("Error en buscarPorReservacion(): " + e.getMessage());
+            log.error("Error en buscarPorReservacion(): " + e.getMessage());
         }
         return null;
     }
@@ -114,7 +118,7 @@ public class FacturaDAOImpl implements FacturaDAO {
                 return true;
             }
         } catch (SQLException e) {
-            System.err.println("Error en guardar(): " + e.getMessage());
+            log.error("Error en guardar(): " + e.getMessage());
         }
         return false;
     }
@@ -127,7 +131,7 @@ public class FacturaDAOImpl implements FacturaDAO {
             ps.setInt   (2, id);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            System.err.println("Error en actualizarEstado(): " + e.getMessage());
+            log.error("Error en actualizarEstado(): " + e.getMessage());
         }
         return false;
     }
@@ -141,7 +145,7 @@ public class FacturaDAOImpl implements FacturaDAO {
                 if (rs.next()) return rs.getInt(1);
             }
         } catch (SQLException e) {
-            System.err.println("Error en contarPorEstado(): " + e.getMessage());
+            log.error("Error en contarPorEstado(): " + e.getMessage());
         }
         return 0;
     }
@@ -155,7 +159,7 @@ public class FacturaDAOImpl implements FacturaDAO {
                 if (rs.next()) return rs.getDouble(1);
             }
         } catch (SQLException e) {
-            System.err.println("Error en sumarTotalPorEstado(): " + e.getMessage());
+            log.error("Error en sumarTotalPorEstado(): " + e.getMessage());
         }
         return 0;
     }

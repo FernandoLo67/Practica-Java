@@ -3,6 +3,8 @@ package com.hotel.dao.impl;
 import com.hotel.dao.ReservacionDAO;
 import com.hotel.modelo.*;
 import com.hotel.util.ConexionDB;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -16,6 +18,8 @@ import java.util.List;
  * @version 1.0
  */
 public class ReservacionDAOImpl implements ReservacionDAO {
+
+    private static final Logger log = LoggerFactory.getLogger(ReservacionDAOImpl.class);
 
     // =========================================================
     // CONSULTAS SQL
@@ -85,7 +89,7 @@ public class ReservacionDAOImpl implements ReservacionDAO {
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) lista.add(mapear(rs));
         } catch (SQLException e) {
-            System.err.println("Error en listarTodas(): " + e.getMessage());
+            log.error("Error en listarTodas(): " + e.getMessage());
         }
         return lista;
     }
@@ -98,7 +102,7 @@ public class ReservacionDAOImpl implements ReservacionDAO {
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) lista.add(mapear(rs));
         } catch (SQLException e) {
-            System.err.println("Error en listarActivas(): " + e.getMessage());
+            log.error("Error en listarActivas(): " + e.getMessage());
         }
         return lista;
     }
@@ -117,7 +121,7 @@ public class ReservacionDAOImpl implements ReservacionDAO {
                 while (rs.next()) lista.add(mapear(rs));
             }
         } catch (SQLException e) {
-            System.err.println("Error en buscar(): " + e.getMessage());
+            log.error("Error en buscar(): " + e.getMessage());
         }
         return lista;
     }
@@ -131,7 +135,7 @@ public class ReservacionDAOImpl implements ReservacionDAO {
                 if (rs.next()) return mapear(rs);
             }
         } catch (SQLException e) {
-            System.err.println("Error en buscarPorId(): " + e.getMessage());
+            log.error("Error en buscarPorId(): " + e.getMessage());
         }
         return null;
     }
@@ -158,7 +162,7 @@ public class ReservacionDAOImpl implements ReservacionDAO {
                 return true;
             }
         } catch (SQLException e) {
-            System.err.println("Error en guardar(): " + e.getMessage());
+            log.error("Error en guardar(): " + e.getMessage());
         }
         return false;
     }
@@ -178,7 +182,7 @@ public class ReservacionDAOImpl implements ReservacionDAO {
 
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            System.err.println("Error en actualizar(): " + e.getMessage());
+            log.error("Error en actualizar(): " + e.getMessage());
         }
         return false;
     }
@@ -191,7 +195,7 @@ public class ReservacionDAOImpl implements ReservacionDAO {
             ps.setInt   (2, id);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            System.err.println("Error en cambiarEstado(): " + e.getMessage());
+            log.error("Error en cambiarEstado(): " + e.getMessage());
         }
         return false;
     }
@@ -203,7 +207,7 @@ public class ReservacionDAOImpl implements ReservacionDAO {
             ps.setInt(1, id);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            System.err.println("Error en eliminar(): " + e.getMessage());
+            log.error("Error en eliminar(): " + e.getMessage());
         }
         return false;
     }
@@ -221,7 +225,7 @@ public class ReservacionDAOImpl implements ReservacionDAO {
                 if (rs.next()) return rs.getInt(1) == 0;
             }
         } catch (SQLException e) {
-            System.err.println("Error en habitacionDisponible(): " + e.getMessage());
+            log.error("Error en habitacionDisponible(): " + e.getMessage());
         }
         return false;
     }
@@ -235,7 +239,7 @@ public class ReservacionDAOImpl implements ReservacionDAO {
                 if (rs.next()) return rs.getInt(1);
             }
         } catch (SQLException e) {
-            System.err.println("Error en contarPorEstado(): " + e.getMessage());
+            log.error("Error en contarPorEstado(): " + e.getMessage());
         }
         return 0;
     }

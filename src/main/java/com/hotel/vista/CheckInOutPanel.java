@@ -38,13 +38,14 @@ public class CheckInOutPanel extends JPanel {
     private final Frame              ventanaPadre;
     private final Usuario            usuarioActual;
 
-    private static final Color COLOR_PRIMARIO   = new Color(26, 35, 126);
-    private static final Color COLOR_FONDO      = new Color(243, 246, 253);
-    private static final Color COLOR_CHECKIN    = new Color(46, 125, 50);
-    private static final Color COLOR_CHECKOUT   = new Color(198, 40, 40);
-    private static final Color COLOR_HEADER     = new Color(232, 236, 255);
-    private static final Color COLOR_FILA_PAR   = Color.WHITE;
-    private static final Color COLOR_FILA_IMPAR = new Color(248, 250, 255);
+    // Colores delegados a Tema.java
+    private static final Color COLOR_PRIMARIO   = com.hotel.util.Tema.COLOR_PRIMARIO;
+    private static final Color COLOR_FONDO      = com.hotel.util.Tema.COLOR_FONDO;
+    private static final Color COLOR_CHECKIN    = com.hotel.util.Tema.COLOR_EXITO;
+    private static final Color COLOR_CHECKOUT   = com.hotel.util.Tema.COLOR_ERROR;
+    private static final Color COLOR_HEADER     = com.hotel.util.Tema.COLOR_HEADER_TABLA;
+    private static final Color COLOR_FILA_PAR   = com.hotel.util.Tema.COLOR_FILA_PAR;
+    private static final Color COLOR_FILA_IMPAR = com.hotel.util.Tema.COLOR_FILA_IMPAR;
 
     private static final String[] COLS = {
         "ID", "Cliente", "Habitación", "Tipo", "Check-In", "Check-Out", "Noches", "Total (Q)"

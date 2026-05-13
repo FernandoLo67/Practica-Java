@@ -1,23 +1,27 @@
 @echo off
 cd /d "C:\Users\COMPUBYTES\Desktop\Netbeans\mavenproject2"
 git add .
-git commit -m "Mejoras de seguridad y arquitectura: HikariCP, BCrypt, permisos por rol y modulo de usuarios
+git commit -m "Sistema completo: Dashboard, PDF, SLF4J, Tema.java y todos los modulos terminados
 
-- ConexionDB: reemplaza Singleton con pool HikariCP (max 10 conexiones, reconexion automatica)
-- ConexionDB: credenciales leidas de database.properties (excluido de git)
-- UsuarioDAOImpl: autenticacion BCrypt (verifica en Java, no en SQL)
-- UsuarioDAOImpl: guarda passwords con hash BCrypt, migracion automatica de texto plano
-- UsuarioDAO: nuevo metodo actualizarPassword(id, hash)
-- Main: shutdown hook para cerrar pool HikariCP al salir
+Batch 1 - Seguridad y arquitectura:
+- ConexionDB: pool HikariCP (max 10), credenciales en database.properties (excluido de git)
+- UsuarioDAOImpl: autenticacion BCrypt en Java, migracion automatica de texto plano
+- PasswordUtil.java: wrapper BCrypt con retrocompatibilidad
+- HotelException.java: excepcion personalizada con codigos de error
 - Tema.java: constantes centralizadas de colores y fuentes
 - UIHelper.java: fabrica de componentes Swing reutilizables
-- PasswordUtil.java: wrapper BCrypt con retrocompatibilidad texto plano
-- HotelException.java: excepcion personalizada con codigos de error
-- UsuariosPanel.java: nuevo modulo de gestion de usuarios (ADMIN only)
-- UsuarioFormDialog.java: dialogo crear/editar usuario con hash BCrypt automatico
-- MenuPrincipal: seccion Administracion y boton Usuarios solo para ADMIN
-- MenuPrincipal: badge de rol coloreado en el header
-- MenuPrincipal: pantalla de acceso denegado para RECEPCIONISTA
-- ReservacionFormDialog: MaskFormatter en campos de fecha (dd/mm/aaaa)"
+- UsuariosPanel + UsuarioFormDialog: modulo CRUD de usuarios (ADMIN only)
+- MenuPrincipal: seccion Administracion, badge de rol, pantalla acceso denegado
+- ReservacionFormDialog: MaskFormatter en campos de fecha (dd/mm/aaaa)
+- Main: shutdown hook HikariCP
+
+Batch 2 - Funcionalidades y calidad:
+- DashboardPanel: KPIs en tiempo real con SwingWorker (async), agenda del dia
+- ReportesPanel: exportar a PDF con Apache PDFBox (KPIs, reservas, top clientes)
+- SLF4J en todos los DAOs: reemplaza System.err.println con log.error/debug
+- simplelogger.properties: configuracion de nivel de log
+- ClientesPanel: refactor completo con Tema.java y UIHelper, filtro TableRowSorter
+- HabitacionesPanel, ReservacionesPanel, CheckInOutPanel, FacturasPanel: colores delegados a Tema
+- README.md: reescritura completa con estructura actual, dependencias y configuracion"
 git push
 pause

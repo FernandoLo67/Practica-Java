@@ -5,15 +5,25 @@ import com.hotel.dao.impl.FacturaDAOImpl;
 import com.hotel.dao.impl.HabitacionDAOImpl;
 import com.hotel.dao.impl.ReservacionDAOImpl;
 import com.hotel.util.ConexionDB;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * Panel de Reportes — resumen ejecutivo del sistema.
@@ -34,8 +44,8 @@ public class ReportesPanel extends JPanel {
     private final ReservacionDAOImpl  reservacionDAO;
     private final FacturaDAOImpl      facturaDAO;
 
-    private static final Color COLOR_PRIMARIO = new Color(26, 35, 126);
-    private static final Color COLOR_FONDO    = new Color(243, 246, 253);
+    private static final Color COLOR_PRIMARIO = com.hotel.util.Tema.COLOR_PRIMARIO;
+    private static final Color COLOR_FONDO    = com.hotel.util.Tema.COLOR_FONDO;
 
     public ReportesPanel() {
         this.clienteDAO     = new ClienteDAOImpl();
@@ -79,8 +89,32 @@ public class ReportesPanel extends JPanel {
             repaint();
         });
 
-        p.add(lbl,        BorderLayout.WEST);
-        p.add(btnRefresh, BorderLayout.EAST);
+        JButton btnPDF = new JButton("📄 Exportar PDF");
+        btnPDF.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnPDF.setForeground(Color.WHITE);
+        btnPDF.setBackground(new Color(183, 28, 28));
+        btnPDF.setOpaque(true);
+        btnPDF.setBorderPainted(false);
+        btnPDF.setBorder(new EmptyBorder(8, 14, 8, 14));
+        btnPDF.setFocusPainted(false);
+        btnPDF.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnPDF.addMouseListener(new MouseAdapter() {
+            @Override public void mouseEntered(MouseEvent e) {
+                btnPDF.setBackground(new Color(211, 47, 47));
+            }
+            @Override public void mouseExited(MouseEvent e) {
+                btnPDF.setBackground(new Color(183, 28, 28));
+            }
+        });
+        btnPDF.addActionListener(e -> exportarPDF());
+
+        JPanel botones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        botones.setOpaque(false);
+        botones.add(btnRefresh);
+        botones.add(btnPDF);
+
+        p.add(lbl,     BorderLayout.WEST);
+        p.add(botones, BorderLayout.EAST);
         return p;
     }
 
@@ -308,6 +342,237 @@ public class ReportesPanel extends JPanel {
         lbl.setBorder(new EmptyBorder(0, 0, 10, 0));
         p.add(lbl, BorderLayout.NORTH);
         return p;
+    }
+
+    // =========================================================
+    // EXPORTAR PDF
+    // =========================================================
+
+    /**
+     * Genera un reporte en PDF con los datos actuales del sistema.
+     * Usa Apache PDFBox para crear el documento y Java Desktop para abrirlo.
+     */
+    private void exportarPDF() {
+        // Seleccionar destino
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Guardar reporte como PDF");
+        chooser.setFileFilter(new FileNameExtensionFilter("Archivos PDF (*.pdf)", "pdf"));
+        String nombre = "Reporte_Hotel_" +
+            new SimpleDateFormat("yyyyMMdd_HHmm").format(new Date()) + ".pdf";
+        chooser.setSelectedFile(new File(nombre));
+
+        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
+
+        File archivo = chooser.getSelectedFile();
+        if (!archivo.getName().toLowerCase().endsWith(".pdf")) {
+            archivo = new File(archivo.getAbsolutePath() + ".pdf");
+        }
+
+        final File destino = archivo;
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+        // Generar en hilo aparte para no bloquear la UI
+        new Thread(() -> {
+            try {
+                generarPDF(destino);
+                SwingUtilities.invokeLater(() -> {
+                    setCursor(Cursor.getDefaultCursor());
+                    int ok = JOptionPane.showConfirmDialog(ReportesPanel.this,
+                        "PDF generado correctamente.\n" + destino.getName() +
+                        "\n\n¿Deseas abrirlo ahora?",
+                        "Exportación exitosa", JOptionPane.YES_NO_OPTION,
+                        JOptionPane.INFORMATION_MESSAGE);
+                    if (ok == JOptionPane.YES_OPTION) {
+                        try {
+                            java.awt.Desktop.getDesktop().open(destino);
+                        } catch (IOException ex) {
+                            JOptionPane.showMessageDialog(ReportesPanel.this,
+                                "El PDF fue guardado pero no se pudo abrir automáticamente.\n" +
+                                "Ruta: " + destino.getAbsolutePath(),
+                                "Aviso", JOptionPane.WARNING_MESSAGE);
+                        }
+                    }
+                });
+            } catch (Exception ex) {
+                SwingUtilities.invokeLater(() -> {
+                    setCursor(Cursor.getDefaultCursor());
+                    JOptionPane.showMessageDialog(ReportesPanel.this,
+                        "Error al generar el PDF:\n" + ex.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
+                });
+            }
+        }, "pdf-generator").start();
+    }
+
+    private void generarPDF(File archivo) throws IOException {
+        // Obtener datos actuales
+        int totalClientes    = clienteDAO.contarTodos();
+        int disponibles      = habitacionDAO.contarPorEstado("DISPONIBLE");
+        int ocupadas         = habitacionDAO.contarPorEstado("OCUPADA");
+        int resActivas       = reservacionDAO.contarPorEstado("PENDIENTE")
+                             + reservacionDAO.contarPorEstado("CONFIRMADA")
+                             + reservacionDAO.contarPorEstado("CHECKIN");
+        double ingresos      = facturaDAO.sumarTotalPorEstado("PAGADA");
+
+        try (PDDocument doc = new PDDocument()) {
+            PDPage page = new PDPage(PDRectangle.A4);
+            doc.addPage(page);
+
+            float ancho = page.getMediaBox().getWidth();
+            float margen = 50;
+            float y = page.getMediaBox().getHeight() - margen;
+
+            try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
+
+                // ── Cabecera ──────────────────────────────────────
+                cs.setNonStrokingColor(26f/255, 35f/255, 126f/255);
+                cs.addRect(0, y - 10, ancho, 55);
+                cs.fill();
+
+                cs.beginText();
+                cs.setFont(PDType1Font.HELVETICA_BOLD, 20);
+                cs.setNonStrokingColor(1f, 1f, 1f);
+                cs.newLineAtOffset(margen, y + 20);
+                cs.showText("HOTEL SISTEMA - Reporte Ejecutivo");
+                cs.endText();
+
+                cs.beginText();
+                cs.setFont(PDType1Font.HELVETICA, 11);
+                cs.setNonStrokingColor(0.7f, 0.8f, 1f);
+                cs.newLineAtOffset(margen, y + 4);
+                cs.showText("Generado el: " + new SimpleDateFormat("dd/MM/yyyy HH:mm").format(new Date()));
+                cs.endText();
+
+                y -= 70;
+
+                // ── Sección KPIs ─────────────────────────────────
+                cs.setNonStrokingColor(0.1f, 0.1f, 0.1f);
+                cs.beginText();
+                cs.setFont(PDType1Font.HELVETICA_BOLD, 14);
+                cs.newLineAtOffset(margen, y);
+                cs.showText("Resumen General");
+                cs.endText();
+                y -= 8;
+
+                // Línea separadora
+                cs.setStrokingColor(0.7f, 0.75f, 0.9f);
+                cs.setLineWidth(1);
+                cs.moveTo(margen, y);
+                cs.lineTo(ancho - margen, y);
+                cs.stroke();
+                y -= 20;
+
+                // Tabla KPIs
+                String[][] kpis = {
+                    {"Clientes registrados",         String.valueOf(totalClientes)},
+                    {"Habitaciones disponibles",     String.valueOf(disponibles)},
+                    {"Habitaciones ocupadas",        String.valueOf(ocupadas)},
+                    {"Reservaciones activas",        String.valueOf(resActivas)},
+                    {"Ingresos totales (facturados)", String.format("Q %.2f", ingresos)}
+                };
+                for (String[] fila : kpis) {
+                    cs.beginText();
+                    cs.setFont(PDType1Font.HELVETICA, 12);
+                    cs.setNonStrokingColor(0.2f, 0.2f, 0.2f);
+                    cs.newLineAtOffset(margen + 10, y);
+                    cs.showText(fila[0]);
+                    cs.endText();
+
+                    cs.beginText();
+                    cs.setFont(PDType1Font.HELVETICA_BOLD, 12);
+                    cs.setNonStrokingColor(0.1f, 0.14f, 0.5f);
+                    cs.newLineAtOffset(ancho - margen - 80, y);
+                    cs.showText(fila[1]);
+                    cs.endText();
+
+                    y -= 22;
+                }
+
+                // ── Sección Reservaciones por estado ─────────────
+                y -= 20;
+                cs.beginText();
+                cs.setFont(PDType1Font.HELVETICA_BOLD, 14);
+                cs.setNonStrokingColor(0.1f, 0.1f, 0.1f);
+                cs.newLineAtOffset(margen, y);
+                cs.showText("Reservaciones por Estado");
+                cs.endText();
+                y -= 8;
+                cs.setStrokingColor(0.7f, 0.75f, 0.9f);
+                cs.moveTo(margen, y); cs.lineTo(ancho - margen, y); cs.stroke();
+                y -= 20;
+
+                String[] estados = {"PENDIENTE","CONFIRMADA","CHECKIN","CHECKOUT","CANCELADA"};
+                for (String est : estados) {
+                    int cnt = reservacionDAO.contarPorEstado(est);
+                    cs.beginText();
+                    cs.setFont(PDType1Font.HELVETICA, 12);
+                    cs.setNonStrokingColor(0.2f, 0.2f, 0.2f);
+                    cs.newLineAtOffset(margen + 10, y);
+                    cs.showText(est);
+                    cs.endText();
+                    cs.beginText();
+                    cs.setFont(PDType1Font.HELVETICA_BOLD, 12);
+                    cs.setNonStrokingColor(0.1f, 0.14f, 0.5f);
+                    cs.newLineAtOffset(ancho - margen - 60, y);
+                    cs.showText(String.valueOf(cnt));
+                    cs.endText();
+                    y -= 22;
+                }
+
+                // ── Top clientes ─────────────────────────────────
+                y -= 20;
+                if (y > 150) {
+                    cs.beginText();
+                    cs.setFont(PDType1Font.HELVETICA_BOLD, 14);
+                    cs.setNonStrokingColor(0.1f, 0.1f, 0.1f);
+                    cs.newLineAtOffset(margen, y);
+                    cs.showText("Top 5 Clientes");
+                    cs.endText();
+                    y -= 8;
+                    cs.setStrokingColor(0.7f, 0.75f, 0.9f);
+                    cs.moveTo(margen, y); cs.lineTo(ancho - margen, y); cs.stroke();
+                    y -= 20;
+
+                    try (Connection conn = ConexionDB.getConexion();
+                         PreparedStatement ps = conn.prepareStatement(
+                             "SELECT CONCAT(c.nombre,' ',c.apellido) AS n, COUNT(r.id) AS t " +
+                             "FROM reservaciones r JOIN clientes c ON r.id_cliente=c.id " +
+                             "GROUP BY c.id ORDER BY t DESC LIMIT 5");
+                         ResultSet rs = ps.executeQuery()) {
+                        int pos = 1;
+                        while (rs.next() && y > 80) {
+                            String cliente = pos + ". " + rs.getString("n");
+                            String reservas = rs.getInt("t") + " reservacion(es)";
+                            cs.beginText();
+                            cs.setFont(PDType1Font.HELVETICA, 12);
+                            cs.setNonStrokingColor(0.2f, 0.2f, 0.2f);
+                            cs.newLineAtOffset(margen + 10, y);
+                            cs.showText(cliente);
+                            cs.endText();
+                            cs.beginText();
+                            cs.setFont(PDType1Font.HELVETICA, 11);
+                            cs.setNonStrokingColor(0.4f, 0.4f, 0.4f);
+                            cs.newLineAtOffset(ancho - margen - 110, y);
+                            cs.showText(reservas);
+                            cs.endText();
+                            y -= 22;
+                            pos++;
+                        }
+                    } catch (Exception ignored) {}
+                }
+
+                // ── Pie de página ─────────────────────────────────
+                cs.setNonStrokingColor(0.5f, 0.5f, 0.5f);
+                cs.beginText();
+                cs.setFont(PDType1Font.HELVETICA_OBLIQUE, 9);
+                cs.newLineAtOffset(margen, 30);
+                cs.showText("Hotel Sistema v2.0  ·  Reporte generado automáticamente  ·  " +
+                    new SimpleDateFormat("dd/MM/yyyy HH:mm").format(new Date()));
+                cs.endText();
+            }
+
+            doc.save(archivo);
+        }
     }
 
     // =========================================================

@@ -61,6 +61,13 @@
             <version>2.0.9</version>
         </dependency>
 
+        <!-- Apache PDFBox: generación de reportes en PDF -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>2.0.30</version>
+        </dependency>
+
     </dependencies>
 
     <!-- =====================================================

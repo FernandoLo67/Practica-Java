@@ -304,7 +304,7 @@ public class MenuPrincipal extends JFrame {
 
         switch (modulo) {
             case "dashboard":
-                mostrarDashboard();
+                panelContenido.add(new DashboardPanel(usuarioActual), BorderLayout.CENTER);
                 break;
             case "clientes":
                 // Módulo 2: Panel de Gestión de Clientes
@@ -356,52 +356,11 @@ public class MenuPrincipal extends JFrame {
     }
 
     /**
-     * Muestra el Dashboard de bienvenida con tarjetas de acceso rápido.
+     * Muestra el Dashboard con datos en tiempo real.
+     * Delegado a DashboardPanel.
      */
     private void mostrarDashboard() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBackground(COLOR_FONDO);
-
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridwidth = GridBagConstraints.REMAINDER;
-        gbc.anchor    = GridBagConstraints.CENTER;
-        gbc.insets    = new Insets(8, 0, 8, 0);
-
-        // Ícono principal
-        JLabel lblIcono = new JLabel("🏨");
-        lblIcono.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 55));
-        panel.add(lblIcono, gbc);
-
-        // Mensaje de bienvenida
-        JLabel lblBienvenida = new JLabel(
-            "Bienvenido/a, " + usuarioActual.getNombre() + "!"
-        );
-        lblBienvenida.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        lblBienvenida.setForeground(COLOR_SIDEBAR);
-        panel.add(lblBienvenida, gbc);
-
-        JLabel lblSubtitulo = new JLabel(
-            "Selecciona un módulo del menú lateral para comenzar."
-        );
-        lblSubtitulo.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        lblSubtitulo.setForeground(new Color(100, 110, 140));
-        panel.add(lblSubtitulo, gbc);
-
-        // Tarjetas de acceso rápido
-        JPanel panelTarjetas = new JPanel(new FlowLayout(FlowLayout.CENTER, 18, 8));
-        panelTarjetas.setOpaque(false);
-        panelTarjetas.add(crearTarjetaAcceso("👥", "Clientes",      "clientes"));
-        panelTarjetas.add(crearTarjetaAcceso("🛏", "Habitaciones",  "habitaciones"));
-        panelTarjetas.add(crearTarjetaAcceso("📅", "Reservar",      "reservaciones"));
-        panelTarjetas.add(crearTarjetaAcceso("📊", "Reportes",      "reportes"));
-        if (usuarioActual.esAdmin()) {
-            panelTarjetas.add(crearTarjetaAcceso("🔐", "Usuarios",  "usuarios"));
-        }
-
-        gbc.insets = new Insets(22, 0, 0, 0);
-        panel.add(panelTarjetas, gbc);
-
-        panelContenido.add(panel, BorderLayout.CENTER);
+        panelContenido.add(new DashboardPanel(usuarioActual), BorderLayout.CENTER);
     }
 
     /**
