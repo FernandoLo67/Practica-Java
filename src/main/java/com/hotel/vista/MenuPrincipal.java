@@ -290,9 +290,10 @@ public class MenuPrincipal extends JFrame {
                 panelContenido.add(habitacionesPanel, BorderLayout.CENTER);
                 break;
             case "reservaciones":
-                // TODO Módulo 4
-                mostrarProximamente("📅 Reservaciones",
-                    "Aquí podrás crear y gestionar las reservas de los clientes.");
+                // Módulo 4: Panel de Gestión de Reservaciones
+                ReservacionesPanel reservacionesPanel = new ReservacionesPanel(
+                    (Frame) SwingUtilities.getWindowAncestor(this), usuarioActual);
+                panelContenido.add(reservacionesPanel, BorderLayout.CENTER);
                 break;
             case "checkin":
                 // TODO Módulo 5
