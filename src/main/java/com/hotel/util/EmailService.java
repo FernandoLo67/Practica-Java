@@ -130,7 +130,7 @@ public final class EmailService {
     // =========================================================
 
     private static void enviar(String destinatario, String asunto, String htmlBody)
-            throws MessagingException {
+            throws MessagingException, java.io.UnsupportedEncodingException {
 
         Session session = Session.getInstance(SMTP_PROPS, new Authenticator() {
             @Override
@@ -159,7 +159,7 @@ public final class EmailService {
                                ? res.getHabitacion().getTipo().getNombre() : "—";
         String checkin       = res.getFechaCheckin()  != null ? FMT.format(res.getFechaCheckin())  : "—";
         String checkout      = res.getFechaCheckout() != null ? FMT.format(res.getFechaCheckout()) : "—";
-        int    noches        = res.getNoches();
+        long   noches        = res.getNoches();
         double total         = res.getTotalConImpuesto();
         String estado        = res.getEstado() != null ? res.getEstado() : "PENDIENTE";
 

@@ -50,7 +50,7 @@ public final class BitacoraService {
         Bitacora b = new Bitacora();
         if (usuario != null) {
             b.setIdUsuario(usuario.getId());
-            b.setUsuarioNombre(usuario.getNombreCompleto() + " (" + usuario.getUsuario() + ")");
+            b.setUsuarioNombre(usuario.getNombre() + " (" + usuario.getUsuario() + ")");
         } else {
             b.setUsuarioNombre("Sistema");
         }
