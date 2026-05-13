@@ -296,19 +296,21 @@ public class MenuPrincipal extends JFrame {
                 panelContenido.add(reservacionesPanel, BorderLayout.CENTER);
                 break;
             case "checkin":
-                // TODO Módulo 5
-                mostrarProximamente("✅ Check-In / Check-Out",
-                    "Aquí podrás registrar la llegada y salida de los huéspedes.");
+                // Módulo 5: Check-In / Check-Out
+                CheckInOutPanel checkInOutPanel = new CheckInOutPanel(
+                    (Frame) SwingUtilities.getWindowAncestor(this), usuarioActual);
+                panelContenido.add(checkInOutPanel, BorderLayout.CENTER);
                 break;
             case "facturacion":
-                // TODO Módulo 6
-                mostrarProximamente("🧾 Facturación",
-                    "Aquí podrás generar y visualizar las facturas del hotel.");
+                // Módulo 6: Facturación
+                FacturasPanel facturasPanel = new FacturasPanel(
+                    (Frame) SwingUtilities.getWindowAncestor(this));
+                panelContenido.add(facturasPanel, BorderLayout.CENTER);
                 break;
             case "reportes":
-                // TODO Módulo 7
-                mostrarProximamente("📊 Reportes",
-                    "Aquí podrás generar reportes de ocupación, ingresos y más.");
+                // Módulo 7: Reportes
+                ReportesPanel reportesPanel = new ReportesPanel();
+                panelContenido.add(reportesPanel, BorderLayout.CENTER);
                 break;
         }
 
