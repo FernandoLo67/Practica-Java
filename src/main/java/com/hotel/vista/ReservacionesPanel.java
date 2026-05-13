@@ -3,6 +3,7 @@ package com.hotel.vista;
 import com.hotel.dao.impl.ReservacionDAOImpl;
 import com.hotel.modelo.Reservacion;
 import com.hotel.modelo.Usuario;
+import com.hotel.util.ExcelExporter;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -152,7 +153,12 @@ public class ReservacionesPanel extends JPanel {
         btnEditar.addActionListener(e -> abrirFormEditar());
         btnCancelar.addActionListener(e -> cancelarReservacion());
 
+        JButton btnExcel = crearBoton("📊 Excel", new Color(46, 125, 50), false);
+        btnExcel.addActionListener(e ->
+            ExcelExporter.exportar(tabla, "Reservaciones", ventanaPadre));
+
         panelBotones.add(btnActualizar);
+        panelBotones.add(btnExcel);
         panelBotones.add(btnNuevo);
         panelBotones.add(btnEditar);
         panelBotones.add(btnCancelar);

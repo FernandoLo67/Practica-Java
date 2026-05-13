@@ -2,6 +2,7 @@ package com.hotel.vista;
 
 import com.hotel.dao.impl.HabitacionDAOImpl;
 import com.hotel.modelo.Habitacion;
+import com.hotel.util.ExcelExporter;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -40,11 +41,16 @@ public class HabitacionesPanel extends JPanel {
     private JButton            btnActualizar;
     private JComboBox<String>  cmbFiltro;
 
-    // Tarjetas de resumen
+    // Tarjetas de conteo por estado
     private JLabel lblTotalDisponibles;
     private JLabel lblTotalOcupadas;
     private JLabel lblTotalMantenimiento;
     private JLabel lblTotalHabitaciones;
+
+    // Tarjetas de precio
+    private JLabel lblPrecioMin;
+    private JLabel lblPrecioMax;
+    private JLabel lblPrecioProm;
 
     private final HabitacionDAOImpl habitacionDAO;
     private final Frame             ventanaPadre;
@@ -143,7 +149,12 @@ public class HabitacionesPanel extends JPanel {
         btnActualizar.addActionListener(e -> cargarHabitaciones());
         btnEditar.addActionListener(e -> abrirEditar());
 
+        JButton btnExcel = crearBoton("📊 Excel", new Color(46, 125, 50), false);
+        btnExcel.addActionListener(e ->
+            ExcelExporter.exportar(tabla, "Habitaciones", ventanaPadre));
+
         panelBotones.add(btnActualizar);
+        panelBotones.add(btnExcel);
         panelBotones.add(btnEditar);
 
         panel.add(lblTitulo,    BorderLayout.WEST);
@@ -157,8 +168,14 @@ public class HabitacionesPanel extends JPanel {
     private JPanel crearCuerpo() {
         JPanel cuerpo = new JPanel(new BorderLayout(0, 0));
         cuerpo.setBackground(COLOR_FONDO);
-        cuerpo.add(crearTarjetasResumen(), BorderLayout.NORTH);
-        cuerpo.add(crearTabla(),           BorderLayout.CENTER);
+
+        JPanel kpis = new JPanel(new BorderLayout());
+        kpis.setOpaque(false);
+        kpis.add(crearTarjetasResumen(), BorderLayout.NORTH);
+        kpis.add(crearTarjetasPrecio(),  BorderLayout.SOUTH);
+
+        cuerpo.add(kpis,         BorderLayout.NORTH);
+        cuerpo.add(crearTabla(), BorderLayout.CENTER);
         return cuerpo;
     }
 
@@ -176,6 +193,23 @@ public class HabitacionesPanel extends JPanel {
         panel.add(crearTarjeta("✅", "Disponibles",  lblTotalDisponibles,   COLOR_DISPONIBLE));
         panel.add(crearTarjeta("🔴", "Ocupadas",     lblTotalOcupadas,      COLOR_OCUPADA));
         panel.add(crearTarjeta("🔧", "Mantenimiento",lblTotalMantenimiento, COLOR_MANTENIMIENTO));
+
+        return panel;
+    }
+
+    /** Tres tarjetas con estadísticas de precio */
+    private JPanel crearTarjetasPrecio() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 16, 0));
+        panel.setBackground(COLOR_FONDO);
+        panel.setBorder(new EmptyBorder(0, 0, 10, 0));
+
+        lblPrecioMin  = new JLabel("Q —");
+        lblPrecioProm = new JLabel("Q —");
+        lblPrecioMax  = new JLabel("Q —");
+
+        panel.add(crearTarjeta("⬇", "Precio mínimo",  lblPrecioMin,  new Color(21, 128, 61)));
+        panel.add(crearTarjeta("〜", "Precio promedio", lblPrecioProm, new Color(107, 33, 168)));
+        panel.add(crearTarjeta("⬆", "Precio máximo",  lblPrecioMax,  new Color(146, 64, 14)));
 
         return panel;
     }
@@ -386,6 +420,10 @@ public class HabitacionesPanel extends JPanel {
         lblTotalDisponibles  .setText(String.valueOf(habitacionDAO.contarPorEstado("DISPONIBLE")));
         lblTotalOcupadas     .setText(String.valueOf(habitacionDAO.contarPorEstado("OCUPADA")));
         lblTotalMantenimiento.setText(String.valueOf(habitacionDAO.contarPorEstado("MANTENIMIENTO")));
+
+        lblPrecioMin .setText(String.format("Q %.0f", habitacionDAO.getPrecioMin()));
+        lblPrecioProm.setText(String.format("Q %.0f", habitacionDAO.getPrecioProm()));
+        lblPrecioMax .setText(String.format("Q %.0f", habitacionDAO.getPrecioMax()));
     }
 
     private void abrirEditar() {

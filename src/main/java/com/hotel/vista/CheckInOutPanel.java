@@ -4,6 +4,7 @@ import com.hotel.dao.impl.HabitacionDAOImpl;
 import com.hotel.dao.impl.ReservacionDAOImpl;
 import com.hotel.dao.impl.FacturaDAOImpl;
 import com.hotel.modelo.*;
+import com.hotel.util.BitacoraService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -266,6 +267,10 @@ public class CheckInOutPanel extends JPanel {
         if (op == JOptionPane.YES_OPTION) {
             reservacionDAO.cambiarEstado(id, Reservacion.ESTADO_CHECKIN);
             habitacionDAO.cambiarEstado(r.getHabitacion().getId(), "OCUPADA");
+            BitacoraService.log(usuarioActual, Bitacora.ACCION_CHECKIN,
+                Bitacora.MODULO_CHECKINOUT,
+                "Check-In: " + cliente + " — Hab. " + hab +
+                " — Checkout: " + r.getFechaCheckout());
             JOptionPane.showMessageDialog(this,
                 "✅  Check-In registrado para " + cliente + ".\nHabitación " + hab + " marcada como OCUPADA.",
                 "Check-In Exitoso", JOptionPane.INFORMATION_MESSAGE);
@@ -306,6 +311,12 @@ public class CheckInOutPanel extends JPanel {
         // Generar factura automáticamente
         Factura factura = new Factura(r, metodo);
         facturaDAO.guardar(factura);
+        BitacoraService.log(usuarioActual, Bitacora.ACCION_CHECKOUT,
+            Bitacora.MODULO_CHECKINOUT,
+            "Check-Out: " + r.getCliente().getNombreCompleto() +
+            " — Hab. " + r.getHabitacion().getNumero() +
+            " — Total: Q" + String.format("%.2f", factura.getTotal()) +
+            " — Pago: " + metodo);
 
         JOptionPane.showMessageDialog(this,
             "🏁  Check-Out registrado.\n\n" +

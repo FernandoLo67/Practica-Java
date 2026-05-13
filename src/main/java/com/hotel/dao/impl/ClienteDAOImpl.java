@@ -43,11 +43,11 @@ public class ClienteDAOImpl implements ClienteDAO {
 
     private static final String SQL_GUARDAR =
         "INSERT INTO clientes (nombre, apellido, tipo_documento, documento, " +
-        "telefono, email, direccion, nacionalidad) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        "telefono, email, direccion, nacionalidad, activo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     private static final String SQL_ACTUALIZAR =
         "UPDATE clientes SET nombre = ?, apellido = ?, tipo_documento = ?, " +
-        "documento = ?, telefono = ?, email = ?, direccion = ?, nacionalidad = ? " +
+        "documento = ?, telefono = ?, email = ?, direccion = ?, nacionalidad = ?, activo = ? " +
         "WHERE id = ?";
 
     private static final String SQL_ELIMINAR =
@@ -55,6 +55,17 @@ public class ClienteDAOImpl implements ClienteDAO {
 
     private static final String SQL_CONTAR =
         "SELECT COUNT(*) FROM clientes";
+
+    private static final String SQL_CONTAR_ACTIVOS =
+        "SELECT COUNT(*) FROM clientes WHERE activo = TRUE";
+
+    private static final String SQL_CONTAR_NUEVOS_MES =
+        "SELECT COUNT(*) FROM clientes " +
+        "WHERE MONTH(fecha_registro) = MONTH(CURDATE()) " +
+        "AND YEAR(fecha_registro) = YEAR(CURDATE())";
+
+    private static final String SQL_CAMBIAR_ACTIVO =
+        "UPDATE clientes SET activo = ? WHERE id = ?";
 
     // =========================================================
     // IMPLEMENTACIÓN
@@ -146,6 +157,7 @@ public class ClienteDAOImpl implements ClienteDAO {
             ps.setString(6, cliente.getEmail());
             ps.setString(7, cliente.getDireccion());
             ps.setString(8, cliente.getNacionalidad());
+            ps.setBoolean(9, cliente.isActivo());
 
             int filas = ps.executeUpdate();
             if (filas > 0) {
@@ -173,7 +185,8 @@ public class ClienteDAOImpl implements ClienteDAO {
             ps.setString(6, cliente.getEmail());
             ps.setString(7, cliente.getDireccion());
             ps.setString(8, cliente.getNacionalidad());
-            ps.setInt(9, cliente.getId());
+            ps.setBoolean(9, cliente.isActivo());
+            ps.setInt(10, cliente.getId());
 
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -211,6 +224,40 @@ public class ClienteDAOImpl implements ClienteDAO {
         return 0;
     }
 
+    public int contarActivos() {
+        try (Connection conn = ConexionDB.getConexion();
+             PreparedStatement ps = conn.prepareStatement(SQL_CONTAR_ACTIVOS);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) return rs.getInt(1);
+        } catch (SQLException e) {
+            log.error("Error en contarActivos()", e);
+        }
+        return 0;
+    }
+
+    public int contarNuevosEsteMes() {
+        try (Connection conn = ConexionDB.getConexion();
+             PreparedStatement ps = conn.prepareStatement(SQL_CONTAR_NUEVOS_MES);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) return rs.getInt(1);
+        } catch (SQLException e) {
+            log.error("Error en contarNuevosEsteMes()", e);
+        }
+        return 0;
+    }
+
+    public boolean cambiarActivo(int id, boolean activo) {
+        try (Connection conn = ConexionDB.getConexion();
+             PreparedStatement ps = conn.prepareStatement(SQL_CAMBIAR_ACTIVO)) {
+            ps.setBoolean(1, activo);
+            ps.setInt(2, id);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            log.error("Error en cambiarActivo()", e);
+        }
+        return false;
+    }
+
     // =========================================================
     // MAPEO ResultSet → Cliente
     // =========================================================
@@ -229,6 +276,7 @@ public class ClienteDAOImpl implements ClienteDAO {
         c.setEmail(rs.getString("email"));
         c.setDireccion(rs.getString("direccion"));
         c.setNacionalidad(rs.getString("nacionalidad"));
+        c.setActivo(rs.getBoolean("activo"));
         c.setFechaRegistro(rs.getTimestamp("fecha_registro"));
         return c;
     }

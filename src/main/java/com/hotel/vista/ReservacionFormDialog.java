@@ -4,6 +4,8 @@ import com.hotel.dao.impl.ClienteDAOImpl;
 import com.hotel.dao.impl.HabitacionDAOImpl;
 import com.hotel.dao.impl.ReservacionDAOImpl;
 import com.hotel.modelo.*;
+import com.hotel.util.BitacoraService;
+import com.hotel.util.EmailService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -430,12 +432,28 @@ public class ReservacionFormDialog extends JDialog {
         if (reservacion.getUsuarioRegistro() == null)
             reservacion.setUsuarioRegistro(usuarioActual);
 
-        boolean ok = reservacion.getId() == 0
+        boolean esNueva = (reservacion.getId() == 0); // capturar ANTES del save
+        boolean ok = esNueva
             ? reservacionDAO.guardar(reservacion)
             : reservacionDAO.actualizar(reservacion);
 
         if (ok) {
             guardadoExitoso = true;
+
+            // Bitácora
+            BitacoraService.log(
+                esNueva ? Bitacora.ACCION_CREAR : Bitacora.ACCION_EDITAR,
+                Bitacora.MODULO_RESERVACIONES,
+                (esNueva ? "Reservación creada" : "Reservación editada") +
+                ": " + cliente.getNombreCompleto() +
+                " — Hab. " + habitacion.getNumero() +
+                " (" + ci + " → " + co + ")");
+
+            // Email de confirmación (solo reservaciones nuevas)
+            if (esNueva) {
+                EmailService.enviarConfirmacionReservacion(reservacion);
+            }
+
             dispose();
         } else {
             lblMensaje.setText("✗  Error al guardar. Intenta de nuevo.");

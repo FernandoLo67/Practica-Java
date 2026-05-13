@@ -1,7 +1,10 @@
 package com.hotel.vista;
 
 import com.hotel.dao.impl.UsuarioDAOImpl;
+import com.hotel.modelo.Bitacora;
 import com.hotel.modelo.Usuario;
+import com.hotel.util.BitacoraService;
+import com.hotel.util.SesionActual;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -324,7 +327,12 @@ public class LoginForm extends JFrame {
             Usuario usuarioObj = usuarioDAO.autenticar(usuario, password);
 
             if (usuarioObj != null) {
-                // Login exitoso
+                // Login exitoso — establecer sesión y registrar en bitácora
+                SesionActual.setUsuario(usuarioObj);
+                BitacoraService.log(usuarioObj, Bitacora.ACCION_LOGIN,
+                    Bitacora.MODULO_SISTEMA,
+                    "Inicio de sesión exitoso — rol: " + usuarioObj.getRol());
+
                 mostrarExito("✓  Bienvenido/a, " + usuarioObj.getNombre() + "!");
 
                 // Esperar 1 segundo y abrir el menú principal
@@ -337,6 +345,10 @@ public class LoginForm extends JFrame {
 
             } else {
                 // Credenciales incorrectas
+                BitacoraService.log(null, Bitacora.ACCION_LOGIN_FALLIDO,
+                    Bitacora.MODULO_SISTEMA,
+                    "Intento de acceso fallido — usuario ingresado: '" + usuario + "'");
+
                 mostrarError("✗  Usuario o contraseña incorrectos");
                 txtPassword.setText("");
                 txtPassword.requestFocus();

@@ -5,6 +5,17 @@ import com.hotel.util.ConexionDB;
 import com.hotel.util.Tema;
 import com.hotel.util.UIHelper;
 
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.CategoryAxis;
+import org.jfree.chart.axis.NumberAxis;
+import org.jfree.chart.plot.CategoryPlot;
+import org.jfree.chart.plot.PiePlot;
+import org.jfree.chart.renderer.category.BarRenderer;
+import org.jfree.data.category.DefaultCategoryDataset;
+import org.jfree.data.general.DefaultPieDataset;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
@@ -15,7 +26,9 @@ import java.sql.ResultSet;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Panel de Dashboard — vista ejecutiva con datos en tiempo real.
@@ -48,6 +61,10 @@ public class DashboardPanel extends JPanel {
 
     // Panel principal de agenda (para actualizar fácilmente)
     private JPanel panelAgenda;
+
+    // Gráficas JFreeChart
+    private DefaultCategoryDataset datasetBarras;
+    private DefaultPieDataset      datasetPie;
 
     private static final DateTimeFormatter FMT_FECHA =
         DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -123,6 +140,9 @@ public class DashboardPanel extends JPanel {
         panelAgenda.add(crearTablaCheckins());
         panelAgenda.add(crearTablaCheckouts());
         cuerpo.add(panelAgenda);
+
+        cuerpo.add(Box.createVerticalStrut(18));
+        cuerpo.add(crearGraficas());
 
         JScrollPane scroll = new JScrollPane(cuerpo);
         scroll.setBorder(null);
@@ -239,6 +259,88 @@ public class DashboardPanel extends JPanel {
     }
 
     // =========================================================
+    // GRÁFICAS JFREECHART
+    // =========================================================
+
+    private JPanel crearGraficas() {
+        JPanel contenedor = new JPanel(new GridLayout(1, 2, 14, 0));
+        contenedor.setOpaque(false);
+        contenedor.setMaximumSize(new Dimension(Integer.MAX_VALUE, 300));
+
+        // --- Gráfica de barras: reservaciones por mes ---
+        datasetBarras = new DefaultCategoryDataset();
+        JFreeChart barChart = ChartFactory.createBarChart(
+            null, null, "Reservaciones",
+            datasetBarras
+        );
+        barChart.setBackgroundPaint(Color.WHITE);
+        barChart.removeLegend();
+
+        CategoryPlot plot = barChart.getCategoryPlot();
+        plot.setBackgroundPaint(Color.WHITE);
+        plot.setOutlineVisible(false);
+        plot.setRangeGridlinePaint(new Color(220, 224, 240));
+
+        BarRenderer renderer = (BarRenderer) plot.getRenderer();
+        renderer.setSeriesPaint(0, Tema.COLOR_PRIMARIO);
+        renderer.setShadowVisible(false);
+        renderer.setMaximumBarWidth(0.12);
+
+        CategoryAxis domainAxis = plot.getDomainAxis();
+        domainAxis.setTickLabelFont(Tema.FUENTE_SMALL);
+        domainAxis.setAxisLineVisible(false);
+
+        NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
+        rangeAxis.setTickLabelFont(Tema.FUENTE_SMALL);
+        rangeAxis.setStandardTickUnits(org.jfree.chart.axis.NumberAxis.createIntegerTickUnits());
+
+        ChartPanel panelBarra = new ChartPanel(barChart);
+        panelBarra.setBackground(Color.WHITE);
+        panelBarra.setPreferredSize(new Dimension(0, 280));
+
+        contenedor.add(wrapGrafica("📊  Reservaciones — últimos 6 meses", panelBarra));
+
+        // --- Gráfica de pie: habitaciones por estado ---
+        datasetPie = new DefaultPieDataset();
+        JFreeChart pieChart = ChartFactory.createPieChart(null, datasetPie, true, false, false);
+        pieChart.setBackgroundPaint(Color.WHITE);
+
+        PiePlot piePlot = (PiePlot) pieChart.getPlot();
+        piePlot.setBackgroundPaint(Color.WHITE);
+        piePlot.setOutlineVisible(false);
+        piePlot.setSectionPaint("DISPONIBLE",    Tema.COLOR_DISPONIBLE);
+        piePlot.setSectionPaint("OCUPADA",       Tema.COLOR_OCUPADA);
+        piePlot.setSectionPaint("RESERVADA",     Tema.COLOR_RESERVADA);
+        piePlot.setSectionPaint("MANTENIMIENTO", Tema.COLOR_MANTENIMIENTO);
+        piePlot.setLabelFont(Tema.FUENTE_SMALL);
+        piePlot.setLabelBackgroundPaint(new Color(255, 255, 255, 200));
+        piePlot.setShadowPaint(null);
+
+        ChartPanel panelPie = new ChartPanel(pieChart);
+        panelPie.setBackground(Color.WHITE);
+
+        contenedor.add(wrapGrafica("🏨  Habitaciones por estado", panelPie));
+
+        return contenedor;
+    }
+
+    private JPanel wrapGrafica(String titulo, ChartPanel chart) {
+        JPanel p = new JPanel(new BorderLayout());
+        p.setBackground(Color.WHITE);
+        p.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(Tema.COLOR_BORDE, 1),
+            new EmptyBorder(12, 14, 12, 14)
+        ));
+        JLabel lbl = new JLabel(titulo);
+        lbl.setFont(Tema.FUENTE_BOLD);
+        lbl.setForeground(Tema.COLOR_PRIMARIO);
+        lbl.setBorder(new EmptyBorder(0, 0, 6, 0));
+        p.add(lbl,   BorderLayout.NORTH);
+        p.add(chart, BorderLayout.CENTER);
+        return p;
+    }
+
+    // =========================================================
     // CARGA ASÍNCRONA DE DATOS
     // =========================================================
 
@@ -345,6 +447,28 @@ public class DashboardPanel extends JPanel {
                 }
             }
 
+            // Gráfica: reservaciones por mes (últimos 6 meses)
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT DATE_FORMAT(fecha_reserva, '%b %Y') AS etiqueta, COUNT(*) AS total " +
+                    "FROM reservaciones " +
+                    "WHERE fecha_reserva >= DATE_SUB(NOW(), INTERVAL 6 MONTH) " +
+                    "GROUP BY YEAR(fecha_reserva), MONTH(fecha_reserva), etiqueta " +
+                    "ORDER BY YEAR(fecha_reserva), MONTH(fecha_reserva)");
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    d.reservasPorMes.put(rs.getString("etiqueta"), rs.getInt("total"));
+                }
+            }
+
+            // Gráfica: habitaciones por estado
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT estado, COUNT(*) AS total FROM habitaciones GROUP BY estado");
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    d.habsPorEstado.put(rs.getString("estado"), rs.getInt("total"));
+                }
+            }
+
         } catch (Exception ex) {
             // Datos quedan en 0, la UI mostrará "-"
         }
@@ -379,6 +503,24 @@ public class DashboardPanel extends JPanel {
             modeloCheckouts.addRow(new String[]{"Sin check-outs hoy", "", ""});
         }
 
+        // Gráfica de barras: reservaciones por mes
+        datasetBarras.clear();
+        for (Map.Entry<String, Integer> e : d.reservasPorMes.entrySet()) {
+            datasetBarras.addValue(e.getValue(), "Reservaciones", e.getKey());
+        }
+        if (d.reservasPorMes.isEmpty()) {
+            datasetBarras.addValue(0, "Reservaciones", "Sin datos");
+        }
+
+        // Gráfica de pie: habitaciones por estado
+        datasetPie.clear();
+        for (Map.Entry<String, Integer> e : d.habsPorEstado.entrySet()) {
+            datasetPie.setValue(e.getKey(), e.getValue());
+        }
+        if (d.habsPorEstado.isEmpty()) {
+            datasetPie.setValue("Sin datos", 1);
+        }
+
         revalidate();
         repaint();
     }
@@ -388,11 +530,13 @@ public class DashboardPanel extends JPanel {
     // =========================================================
 
     private static class DashboardData {
-        int    habDisponibles = 0;
+        int    habDisponibles  = 0;
         int    reservasActivas = 0;
-        int    checkinsHoy    = 0;
-        double ingresosMes    = 0;
-        java.util.List<String[]> checkins  = new java.util.ArrayList<>();
-        java.util.List<String[]> checkouts = new java.util.ArrayList<>();
+        int    checkinsHoy     = 0;
+        double ingresosMes     = 0;
+        java.util.List<String[]>    checkins      = new java.util.ArrayList<>();
+        java.util.List<String[]>    checkouts     = new java.util.ArrayList<>();
+        LinkedHashMap<String, Integer> reservasPorMes = new LinkedHashMap<>();
+        Map<String, Integer>           habsPorEstado  = new LinkedHashMap<>();
     }
 }

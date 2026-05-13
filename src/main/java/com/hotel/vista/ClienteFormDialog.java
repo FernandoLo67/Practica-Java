@@ -1,7 +1,9 @@
 package com.hotel.vista;
 
 import com.hotel.dao.impl.ClienteDAOImpl;
+import com.hotel.modelo.Bitacora;
 import com.hotel.modelo.Cliente;
+import com.hotel.util.BitacoraService;
 import com.hotel.util.Validaciones;
 
 import javax.swing.*;
@@ -41,6 +43,7 @@ public class ClienteFormDialog extends JDialog {
     private JTextField    txtEmail;
     private JTextField    txtNacionalidad;
     private JTextArea     txtDireccion;
+    private JCheckBox     chkActivo;
     private JButton       btnGuardar;
     private JButton       btnCancelar;
 
@@ -204,8 +207,21 @@ public class ClienteFormDialog extends JDialog {
         ));
         panel.add(new JScrollPane(txtDireccion), gbc);
 
+        // ---- Fila 8: Activo (solo en edición) ----
+        if (clienteEditar != null) {
+            gbc.gridx = 0; gbc.gridy = 8; gbc.gridwidth = 2;
+            chkActivo = new JCheckBox("  Cliente activo");
+            chkActivo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            chkActivo.setBackground(COLOR_FONDO);
+            chkActivo.setSelected(true);
+            panel.add(chkActivo, gbc);
+            gbc.gridy = 9;
+        } else {
+            gbc.gridy = 8;
+        }
+
         // Nota de campos obligatorios
-        gbc.gridx = 0; gbc.gridy = 8; gbc.gridwidth = 2;
+        gbc.gridx = 0; gbc.gridwidth = 2;
         JLabel lblNota = new JLabel("  * Campos obligatorios");
         lblNota.setFont(new Font("Segoe UI", Font.ITALIC, 11));
         lblNota.setForeground(Color.GRAY);
@@ -323,6 +339,7 @@ public class ClienteFormDialog extends JDialog {
         txtNacionalidad.setForeground(Color.BLACK);
         txtDireccion.setText(c.getDireccion() != null ? c.getDireccion() : "");
         cmbTipoDocumento.setSelectedItem(c.getTipoDocumento());
+        if (chkActivo != null) chkActivo.setSelected(c.isActivo());
     }
 
     /**
@@ -390,6 +407,7 @@ public class ClienteFormDialog extends JDialog {
         cliente.setEmail(email.isEmpty() ? null : email.toLowerCase());
         cliente.setNacionalidad(nacionalidad.isEmpty() ? null : Validaciones.capitalizar(nacionalidad));
         cliente.setDireccion(direccion.isEmpty() ? null : direccion);
+        if (chkActivo != null) cliente.setActivo(chkActivo.isSelected());
 
         // ---- GUARDAR O ACTUALIZAR EN BD ----
         boolean exito;
@@ -401,6 +419,16 @@ public class ClienteFormDialog extends JDialog {
 
         if (exito) {
             guardadoExitoso = true;
+            if (clienteEditar == null) {
+                BitacoraService.log(Bitacora.ACCION_CREAR, Bitacora.MODULO_CLIENTES,
+                    "Cliente registrado: " + cliente.getNombreCompleto()
+                    + " — " + cliente.getTipoDocumento() + ": " + cliente.getDocumento());
+            } else {
+                BitacoraService.log(Bitacora.ACCION_EDITAR, Bitacora.MODULO_CLIENTES,
+                    "Cliente editado: " + cliente.getNombreCompleto()
+                    + " — Doc: " + cliente.getDocumento()
+                    + (chkActivo != null ? " — Activo: " + cliente.isActivo() : ""));
+            }
             String msg = (clienteEditar == null)
                 ? "Cliente registrado exitosamente."
                 : "Cliente actualizado exitosamente.";

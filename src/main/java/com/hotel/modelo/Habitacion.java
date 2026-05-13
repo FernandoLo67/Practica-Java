@@ -35,6 +35,13 @@ public class Habitacion {
     private String descripcion;
     private String imagenUrl;
 
+    /**
+     * Precio especial por noche para ESTA habitación.
+     * Cuando está seteado, sobreescribe el precio base del tipo.
+     * null = usar precio del tipo.
+     */
+    private Double precioEspecial;
+
     // Constructores
     public Habitacion() {}
 
@@ -67,6 +74,9 @@ public class Habitacion {
     public String getImagenUrl() { return imagenUrl; }
     public void setImagenUrl(String imagenUrl) { this.imagenUrl = imagenUrl; }
 
+    public Double getPrecioEspecial() { return precioEspecial; }
+    public void setPrecioEspecial(Double precioEspecial) { this.precioEspecial = precioEspecial; }
+
     // Métodos de utilidad
 
     /** @return true si la habitación está libre para reservar */
@@ -74,8 +84,15 @@ public class Habitacion {
         return ESTADO_DISPONIBLE.equals(this.estado);
     }
 
-    /** @return Precio por noche del tipo de habitación */
+    /**
+     * Retorna el precio efectivo por noche:
+     *   - Si precioEspecial está seteado (no null), lo usa.
+     *   - De lo contrario usa el precio base del tipo.
+     * Esto permite fijar tarifas individuales por habitación sin
+     * modificar la tarifa del tipo completo.
+     */
     public double getPrecioNoche() {
+        if (precioEspecial != null) return precioEspecial;
         return tipo != null ? tipo.getPrecioBase() : 0;
     }
 

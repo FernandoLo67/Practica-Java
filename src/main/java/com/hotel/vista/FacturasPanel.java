@@ -1,7 +1,9 @@
 package com.hotel.vista;
 
 import com.hotel.dao.impl.FacturaDAOImpl;
+import com.hotel.modelo.Bitacora;
 import com.hotel.modelo.Factura;
+import com.hotel.util.BitacoraService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -326,6 +328,10 @@ public class FacturasPanel extends JPanel {
 
         if (op == JOptionPane.YES_OPTION) {
             if (facturaDAO.actualizarEstado(id, nuevoEstado)) {
+                BitacoraService.log(Bitacora.ACCION_CAMBIAR_ESTADO,
+                    Bitacora.MODULO_FACTURAS,
+                    "Factura #" + id + " → " + nuevoEstado +
+                    " (antes: " + est + ")");
                 cargarFacturas();
             } else {
                 JOptionPane.showMessageDialog(this, "No se pudo actualizar el estado.", "Error",

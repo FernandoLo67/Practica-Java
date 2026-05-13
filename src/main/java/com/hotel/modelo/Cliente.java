@@ -25,6 +25,7 @@ public class Cliente {
     private String email;
     private String direccion;
     private String nacionalidad;
+    private boolean activo = true;
     private Timestamp fechaRegistro;
 
     // =========================================================
@@ -73,6 +74,9 @@ public class Cliente {
 
     public String getNacionalidad() { return nacionalidad; }
     public void setNacionalidad(String nacionalidad) { this.nacionalidad = nacionalidad; }
+
+    public boolean isActivo() { return activo; }
+    public void setActivo(boolean activo) { this.activo = activo; }
 
     public Timestamp getFechaRegistro() { return fechaRegistro; }
     public void setFechaRegistro(Timestamp fechaRegistro) { this.fechaRegistro = fechaRegistro; }

@@ -199,6 +199,7 @@ public class MenuPrincipal extends JFrame {
         sidebar.add(crearBotonMenu("🏠", "Dashboard",          "dashboard"));
         sidebar.add(crearBotonMenu("👥", "Clientes",            "clientes"));
         sidebar.add(crearBotonMenu("🛏", "Habitaciones",        "habitaciones"));
+        sidebar.add(crearBotonMenu("🏷", "Tipos de Habitación", "tipos"));
         sidebar.add(crearBotonMenu("📅", "Reservaciones",       "reservaciones"));
         sidebar.add(crearBotonMenu("✅", "Check-In / Check-Out","checkin"));
         sidebar.add(crearBotonMenu("🧾", "Facturación",         "facturacion"));
@@ -220,6 +221,7 @@ public class MenuPrincipal extends JFrame {
             sidebar.add(lblAdmin);
 
             sidebar.add(crearBotonMenu("🔐", "Usuarios",        "usuarios"));
+            sidebar.add(crearBotonMenu("🔍", "Bitácora",        "bitacora"));
         }
 
         // Espacio flexible que empuja el texto de versión hacia abajo
@@ -316,6 +318,12 @@ public class MenuPrincipal extends JFrame {
                 HabitacionesPanel habitacionesPanel = new HabitacionesPanel((Frame) SwingUtilities.getWindowAncestor(this));
                 panelContenido.add(habitacionesPanel, BorderLayout.CENTER);
                 break;
+            case "tipos":
+                // Módulo: Tipos de Habitación (tarifas base y categorías)
+                TiposHabitacionPanel tiposPanel = new TiposHabitacionPanel(
+                    (Frame) SwingUtilities.getWindowAncestor(this));
+                panelContenido.add(tiposPanel, BorderLayout.CENTER);
+                break;
             case "reservaciones":
                 // Módulo 4: Panel de Gestión de Reservaciones
                 ReservacionesPanel reservacionesPanel = new ReservacionesPanel(
@@ -345,6 +353,16 @@ public class MenuPrincipal extends JFrame {
                     UsuariosPanel usuariosPanel = new UsuariosPanel(
                         (Frame) SwingUtilities.getWindowAncestor(this));
                     panelContenido.add(usuariosPanel, BorderLayout.CENTER);
+                } else {
+                    mostrarAccesoDenegado();
+                }
+                break;
+            case "bitacora":
+                // Bitácora: solo ADMIN
+                if (usuarioActual.esAdmin()) {
+                    BitacoraPanel bitacoraPanel = new BitacoraPanel(
+                        (Frame) SwingUtilities.getWindowAncestor(this));
+                    panelContenido.add(bitacoraPanel, BorderLayout.CENTER);
                 } else {
                     mostrarAccesoDenegado();
                 }

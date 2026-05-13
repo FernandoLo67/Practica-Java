@@ -31,6 +31,7 @@ public class HabitacionDAOImpl implements HabitacionDAO {
     /** SELECT base con JOIN al tipo para obtener precio y capacidad */
     private static final String SQL_BASE =
         "SELECT h.id, h.numero, h.piso, h.estado, h.descripcion, h.imagen_url, " +
+        "       h.precio_especial, " +
         "       t.id AS tipo_id, t.nombre AS tipo_nombre, t.descripcion AS tipo_desc, " +
         "       t.precio_base, t.capacidad " +
         "FROM habitaciones h " +
@@ -51,12 +52,12 @@ public class HabitacionDAOImpl implements HabitacionDAO {
         SQL_BASE + "WHERE h.id = ?";
 
     private static final String SQL_GUARDAR =
-        "INSERT INTO habitaciones (numero, piso, id_tipo, estado, descripcion) " +
-        "VALUES (?, ?, ?, ?, ?)";
+        "INSERT INTO habitaciones (numero, piso, id_tipo, estado, descripcion, precio_especial) " +
+        "VALUES (?, ?, ?, ?, ?, ?)";
 
     private static final String SQL_ACTUALIZAR =
         "UPDATE habitaciones SET numero = ?, piso = ?, id_tipo = ?, " +
-        "estado = ?, descripcion = ? WHERE id = ?";
+        "estado = ?, descripcion = ?, precio_especial = ? WHERE id = ?";
 
     private static final String SQL_CAMBIAR_ESTADO =
         "UPDATE habitaciones SET estado = ? WHERE id = ?";
@@ -148,6 +149,8 @@ public class HabitacionDAOImpl implements HabitacionDAO {
             ps.setInt   (3, h.getTipo().getId());
             ps.setString(4, h.getEstado());
             ps.setString(5, h.getDescripcion());
+            if (h.getPrecioEspecial() != null) ps.setDouble(6, h.getPrecioEspecial());
+            else                               ps.setNull  (6, java.sql.Types.DECIMAL);
 
             int filas = ps.executeUpdate();
             if (filas > 0) {
@@ -172,7 +175,9 @@ public class HabitacionDAOImpl implements HabitacionDAO {
             ps.setInt   (3, h.getTipo().getId());
             ps.setString(4, h.getEstado());
             ps.setString(5, h.getDescripcion());
-            ps.setInt   (6, h.getId());
+            if (h.getPrecioEspecial() != null) ps.setDouble(6, h.getPrecioEspecial());
+            else                               ps.setNull  (6, java.sql.Types.DECIMAL);
+            ps.setInt   (7, h.getId());
 
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -225,6 +230,41 @@ public class HabitacionDAOImpl implements HabitacionDAO {
     }
 
     // =========================================================
+    // ESTADÍSTICAS DE PRECIO
+    // =========================================================
+
+    private static final String SQL_PRECIO_MIN =
+        "SELECT MIN(COALESCE(precio_especial, t.precio_base)) " +
+        "FROM habitaciones h INNER JOIN tipo_habitacion t ON h.id_tipo = t.id";
+    private static final String SQL_PRECIO_MAX =
+        "SELECT MAX(COALESCE(precio_especial, t.precio_base)) " +
+        "FROM habitaciones h INNER JOIN tipo_habitacion t ON h.id_tipo = t.id";
+    private static final String SQL_PRECIO_PROM =
+        "SELECT AVG(COALESCE(precio_especial, t.precio_base)) " +
+        "FROM habitaciones h INNER JOIN tipo_habitacion t ON h.id_tipo = t.id";
+
+    public double getPrecioMin() {
+        return consultarPrecio(SQL_PRECIO_MIN);
+    }
+    public double getPrecioMax() {
+        return consultarPrecio(SQL_PRECIO_MAX);
+    }
+    public double getPrecioProm() {
+        return consultarPrecio(SQL_PRECIO_PROM);
+    }
+
+    private double consultarPrecio(String sql) {
+        try (Connection conn = ConexionDB.getConexion();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) return rs.getDouble(1);
+        } catch (SQLException e) {
+            log.error("Error consultando precio: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    // =========================================================
     // MAPEO ResultSet → Habitacion
     // =========================================================
 
@@ -246,6 +286,9 @@ public class HabitacionDAOImpl implements HabitacionDAO {
         h.setDescripcion(rs.getString("descripcion"));
         h.setImagenUrl  (rs.getString("imagen_url"));
         h.setTipo       (tipo);
+        // precio_especial puede ser NULL — se carga como Double (nullable)
+        double pe = rs.getDouble("precio_especial");
+        h.setPrecioEspecial(rs.wasNull() ? null : pe);
 
         return h;
     }

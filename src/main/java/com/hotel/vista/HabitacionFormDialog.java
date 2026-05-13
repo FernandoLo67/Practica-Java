@@ -22,6 +22,7 @@ public class HabitacionFormDialog extends JDialog {
 
     // Componentes
     private JComboBox<String> cmbEstado;
+    private JTextField        txtPrecioEspecial;
     private JTextArea         txtDescripcion;
 
     // Colores
@@ -38,7 +39,7 @@ public class HabitacionFormDialog extends JDialog {
     }
 
     private void configurarDialogo() {
-        setSize(420, 400);
+        setSize(440, 500);
         setLocationRelativeTo(getParent());
         setResizable(false);
     }
@@ -94,8 +95,28 @@ public class HabitacionFormDialog extends JDialog {
         cmbEstado.setBackground(Color.WHITE);
         form.add(cmbEstado, g);
 
-        // Descripción
+        // Precio especial
         g.gridy++; g.insets = new Insets(14, 0, 6, 0);
+        JLabel lblPrecio = new JLabel("Precio especial (Q)");
+        lblPrecio.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblPrecio.setForeground(COLOR_TEXTO);
+        form.add(lblPrecio, g);
+
+        g.gridy++; g.insets = new Insets(0, 0, 4, 0);
+        txtPrecioEspecial = new JTextField();
+        txtPrecioEspecial.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        txtPrecioEspecial.setPreferredSize(new Dimension(0, 36));
+        txtPrecioEspecial.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(190, 195, 220), 1),
+            BorderFactory.createEmptyBorder(4, 10, 4, 10)
+        ));
+        txtPrecioEspecial.setToolTipText(
+            "Deja en blanco para usar el precio base del tipo (" +
+            String.format("Q %.2f", habitacion.getTipo().getPrecioBase()) + ")");
+        form.add(txtPrecioEspecial, g);
+
+        // Descripción
+        g.gridy++; g.insets = new Insets(10, 0, 6, 0);
         JLabel lblDesc = new JLabel("Descripción");
         lblDesc.setFont(new Font("Segoe UI", Font.BOLD, 13));
         lblDesc.setForeground(COLOR_TEXTO);
@@ -154,14 +175,34 @@ public class HabitacionFormDialog extends JDialog {
     private void cargarDatos() {
         cmbEstado.setSelectedItem(habitacion.getEstado());
         txtDescripcion.setText(habitacion.getDescripcion() != null ? habitacion.getDescripcion() : "");
+        if (habitacion.getPrecioEspecial() != null) {
+            txtPrecioEspecial.setText(String.format("%.2f", habitacion.getPrecioEspecial()));
+        }
     }
 
     private void guardar() {
         String nuevoEstado = (String) cmbEstado.getSelectedItem();
         String nuevaDesc   = txtDescripcion.getText().trim();
+        String precioStr   = txtPrecioEspecial.getText().trim();
+
+        // Validar precio especial (opcional)
+        Double precioEspecial = null;
+        if (!precioStr.isEmpty()) {
+            try {
+                precioEspecial = Double.parseDouble(precioStr.replace(",", "."));
+                if (precioEspecial <= 0) throw new NumberFormatException();
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this,
+                    "El precio especial debe ser un número positivo, o déjalo en blanco.",
+                    "Error", JOptionPane.WARNING_MESSAGE);
+                txtPrecioEspecial.requestFocus();
+                return;
+            }
+        }
 
         habitacion.setEstado(nuevoEstado);
-        habitacion.setDescripcion(nuevaDesc);
+        habitacion.setDescripcion(nuevaDesc.isEmpty() ? null : nuevaDesc);
+        habitacion.setPrecioEspecial(precioEspecial);
 
         boolean ok = dao.actualizar(habitacion);
         if (ok) {

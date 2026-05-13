@@ -31,14 +31,15 @@ CREATE TABLE IF NOT EXISTS tipo_habitacion (
 -- Representa cada habitación física del hotel
 -- ============================================================
 CREATE TABLE IF NOT EXISTS habitaciones (
-    id            INT           PRIMARY KEY AUTO_INCREMENT,
-    numero        VARCHAR(10)   NOT NULL UNIQUE COMMENT 'Ej: 101, 202, SUITE-1',
-    piso          INT           NOT NULL,
-    id_tipo       INT           NOT NULL,
-    estado        ENUM('DISPONIBLE','OCUPADA','MANTENIMIENTO','RESERVADA')
-                                NOT NULL DEFAULT 'DISPONIBLE',
-    descripcion   TEXT,
-    imagen_url    VARCHAR(255),
+    id              INT           PRIMARY KEY AUTO_INCREMENT,
+    numero          VARCHAR(10)   NOT NULL UNIQUE COMMENT 'Ej: 101, 202, SUITE-1',
+    piso            INT           NOT NULL,
+    id_tipo         INT           NOT NULL,
+    estado          ENUM('DISPONIBLE','OCUPADA','MANTENIMIENTO','RESERVADA')
+                                  NOT NULL DEFAULT 'DISPONIBLE',
+    precio_especial DECIMAL(10,2) DEFAULT NULL COMMENT 'Sobreescribe precio del tipo si está seteado',
+    descripcion     TEXT,
+    imagen_url      VARCHAR(255),
     CONSTRAINT fk_hab_tipo FOREIGN KEY (id_tipo)
         REFERENCES tipo_habitacion(id) ON UPDATE CASCADE
 );
@@ -71,6 +72,7 @@ CREATE TABLE IF NOT EXISTS clientes (
     email            VARCHAR(100),
     direccion        TEXT,
     nacionalidad     VARCHAR(60),
+    activo           BOOLEAN       NOT NULL DEFAULT TRUE,
     fecha_registro   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -227,5 +229,33 @@ ORDER BY r.fecha_checkin;
 -- ============================================================
 -- FIN DEL SCRIPT
 -- Ejecutar con: mysql -u root -p < hotel_sistema.sql
+-- ============================================================
+-- TABLA: bitacora
+-- Registro de auditoría de acciones del sistema
+-- ============================================================
+CREATE TABLE IF NOT EXISTS bitacora (
+    id              INT           PRIMARY KEY AUTO_INCREMENT,
+    id_usuario      INT,
+    usuario_nombre  VARCHAR(100)  NOT NULL DEFAULT 'Sistema',
+    accion          VARCHAR(60)   NOT NULL COMMENT 'LOGIN, CREAR_CLIENTE, CHECK_IN, etc.',
+    modulo          VARCHAR(50)   NOT NULL COMMENT 'SISTEMA, CLIENTES, HABITACIONES, etc.',
+    descripcion     TEXT,
+    fecha           TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_bit_usuario FOREIGN KEY (id_usuario)
+        REFERENCES usuarios(id) ON DELETE SET NULL
+);
+
+-- ============================================================
+-- ============================================================
+-- ALTER TABLE para bases de datos existentes
+-- (Ejecutar solo si ya tenías la BD creada antes de este script)
+-- ============================================================
+ALTER TABLE clientes
+    ADD COLUMN IF NOT EXISTS activo BOOLEAN NOT NULL DEFAULT TRUE;
+
+ALTER TABLE habitaciones
+    ADD COLUMN IF NOT EXISTS precio_especial DECIMAL(10,2) DEFAULT NULL
+    COMMENT 'Sobreescribe precio del tipo si está seteado';
+
 -- ============================================================
 SELECT 'Base de datos hotel_sistema creada exitosamente ✓' AS resultado;
