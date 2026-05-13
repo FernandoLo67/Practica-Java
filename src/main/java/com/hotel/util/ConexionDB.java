@@ -1,137 +1,206 @@
 package com.hotel.util;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import com.hotel.exception.HotelException;
+
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Properties;
 
 /**
- * Clase utilitaria para gestionar la conexión a la base de datos MySQL.
+ * Gestor del pool de conexiones a la base de datos MySQL.
  *
- * Usa el patrón de diseño SINGLETON para garantizar que solo exista
- * UNA conexión activa a la vez en toda la aplicación.
+ * Reemplaza el antiguo Singleton de una sola conexión con HikariCP,
+ * el pool de conexiones más rápido para Java. Ventajas:
+ *   - Múltiples conexiones simultáneas (hasta maximumPoolSize)
+ *   - Reconexión automática si MySQL se reinicia
+ *   - Monitoreo de conexiones caídas (keepaliveTime)
+ *   - Credenciales en archivo externo (no en el código fuente)
  *
- * CÓMO USARLA:
- *   Connection conn = ConexionDB.getConexion();
+ * Las credenciales se leen de: src/main/resources/database.properties
+ * Ese archivo está en .gitignore (nunca se sube a GitHub).
  *
- * ANTES DE USAR:
- *   - Instala MySQL en tu computadora
- *   - Crea la base de datos ejecutando: hotel_sistema.sql
- *   - Cambia DB_PASSWORD por tu contraseña de MySQL
+ * Uso:
+ *   try (Connection conn = ConexionDB.getConexion()) {
+ *       // usar conn...
+ *   } // se devuelve al pool automáticamente al cerrar
  *
  * @author Fernando
- * @version 1.0
+ * @version 2.0 - HikariCP + credentials en properties
  */
-public class ConexionDB {
+public final class ConexionDB {
+
+    /** Pool de conexiones HikariCP (se inicializa una sola vez) */
+    private static volatile HikariDataSource dataSource = null;
+
+    /** Mutex para inicialización thread-safe */
+    private static final Object LOCK = new Object();
+
+    private ConexionDB() {}
 
     // =========================================================
-    // CONFIGURACIÓN DE LA BASE DE DATOS
-    // Modifica estos valores según tu instalación de MySQL
+    // MÉTODO PRINCIPAL
     // =========================================================
-
-    /** Dirección del servidor MySQL (localhost = tu propia computadora) */
-    private static final String DB_HOST = "localhost";
-
-    /** Puerto por defecto de MySQL */
-    private static final String DB_PORT = "3306";
-
-    /** Nombre de la base de datos que creamos en el script SQL */
-    private static final String DB_NAME = "hotel_sistema";
-
-    /** Usuario de MySQL (por defecto: root) */
-    private static final String DB_USER = "root";
-
-    /** ¡¡ CAMBIA ESTO !! - Pon tu contraseña de MySQL aquí */
-    private static final String DB_PASSWORD = "1739";
-
-    /** URL completa de conexión JDBC con parámetros de configuración */
-    private static final String DB_URL = String.format(
-        "jdbc:mysql://%s:%s/%s?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=UTF-8",
-        DB_HOST, DB_PORT, DB_NAME
-    );
-
-    // =========================================================
-    // SINGLETON: Solo una conexión en toda la aplicación
-    // =========================================================
-
-    /** La única instancia de la conexión (null si está cerrada) */
-    private static Connection conexion = null;
 
     /**
-     * Constructor privado: nadie puede crear instancias de esta clase.
-     * Esto es parte del patrón Singleton.
-     */
-    private ConexionDB() {
-        // No se instancia esta clase
-    }
-
-    /**
-     * Obtiene la conexión a la base de datos.
-     * Si la conexión no existe o está cerrada, crea una nueva.
+     * Obtiene una conexión del pool HikariCP.
      *
-     * @return Connection objeto de conexión activa
-     * @throws SQLException si no se puede conectar a MySQL
+     * IMPORTANTE: úsala siempre con try-with-resources para
+     * que la conexión vuelva al pool automáticamente al salir.
+     *
+     * @return Connection activa del pool
+     * @throws SQLException si no hay conexiones disponibles
      */
     public static Connection getConexion() throws SQLException {
-        // Si no hay conexión o si fue cerrada, crear una nueva
-        if (conexion == null || conexion.isClosed()) {
-            try {
-                // Registrar el driver MySQL
-                Class.forName("com.mysql.cj.jdbc.Driver");
-
-                // Crear la conexión
-                conexion = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-
-                System.out.println("✓ Conexión exitosa a MySQL: " + DB_NAME);
-
-            } catch (ClassNotFoundException e) {
-                // El JAR de MySQL no está en el proyecto
-                throw new SQLException(
-                    "No se encontró el driver de MySQL. " +
-                    "Verifica que mysql-connector-java esté en las dependencias Maven.\n" +
-                    "Error: " + e.getMessage()
-                );
-            } catch (SQLException e) {
-                // Error de conexión (credenciales, servidor apagado, etc.)
-                throw new SQLException(
-                    "No se pudo conectar a MySQL.\n" +
-                    "Verifica que:\n" +
-                    "  1. MySQL esté corriendo\n" +
-                    "  2. La base de datos '" + DB_NAME + "' exista\n" +
-                    "  3. El usuario y contraseña sean correctos\n" +
-                    "Error original: " + e.getMessage()
-                );
-            }
+        if (dataSource == null) {
+            inicializarPool();
         }
-        return conexion;
+        return dataSource.getConnection();
     }
 
+    // =========================================================
+    // INICIALIZACIÓN DEL POOL
+    // =========================================================
+
     /**
-     * Cierra la conexión a la base de datos.
-     * Llama esto cuando la aplicación se cierre.
+     * Crea el pool HikariCP leyendo la configuración de database.properties.
+     * Se ejecuta solo la primera vez (patrón Double-Checked Locking).
      */
-    public static void cerrarConexion() {
-        if (conexion != null) {
+    private static void inicializarPool() {
+        synchronized (LOCK) {
+            if (dataSource != null) return; // otra hebra ya lo inicializó
+
+            Properties props = cargarProperties();
+
+            String host     = props.getProperty("db.host",     "localhost");
+            String port     = props.getProperty("db.port",     "3306");
+            String name     = props.getProperty("db.name",     "hotel_sistema");
+            String user     = props.getProperty("db.user",     "root");
+            String password = props.getProperty("db.password", "");
+
+            String url = String.format(
+                "jdbc:mysql://%s:%s/%s" +
+                "?useSSL=false" +
+                "&serverTimezone=UTC" +
+                "&allowPublicKeyRetrieval=true" +
+                "&useUnicode=true" +
+                "&characterEncoding=UTF-8" +
+                "&autoReconnect=true",
+                host, port, name
+            );
+
+            HikariConfig config = new HikariConfig();
+            config.setJdbcUrl(url);
+            config.setUsername(user);
+            config.setPassword(password);
+            config.setDriverClassName("com.mysql.cj.jdbc.Driver");
+
+            // Tamaño del pool
+            config.setMaximumPoolSize(
+                intProp(props, "db.pool.maximumPoolSize", 10));
+            config.setMinimumIdle(
+                intProp(props, "db.pool.minimumIdle", 2));
+
+            // Timeouts
+            config.setConnectionTimeout(
+                longProp(props, "db.pool.connectionTimeout", 30_000L));
+            config.setIdleTimeout(
+                longProp(props, "db.pool.idleTimeout", 600_000L));
+            config.setMaxLifetime(
+                longProp(props, "db.pool.maxLifetime", 1_800_000L));
+
+            // Validación de conexiones
+            config.setConnectionTestQuery("SELECT 1");
+            config.setPoolName("HotelPool");
+
             try {
-                if (!conexion.isClosed()) {
-                    conexion.close();
-                    System.out.println("Conexión a MySQL cerrada correctamente.");
-                }
-            } catch (SQLException e) {
-                System.err.println("Error al cerrar la conexión: " + e.getMessage());
-            } finally {
-                conexion = null;
+                dataSource = new HikariDataSource(config);
+                System.out.println("✓ Pool HikariCP iniciado: " + name +
+                    " (max=" + config.getMaximumPoolSize() + " conexiones)");
+            } catch (Exception e) {
+                throw new HotelException(
+                    HotelException.CONEXION_FALLIDA,
+                    "No se pudo conectar a MySQL.\n" +
+                    "Verifica que MySQL esté corriendo y que database.properties sea correcto.\n" +
+                    "Error: " + e.getMessage(), e
+                );
             }
         }
     }
 
+    // =========================================================
+    // LECTURA DE PROPERTIES
+    // =========================================================
+
     /**
-     * Verifica si la conexión está activa sin crear una nueva.
-     *
-     * @return true si hay conexión activa, false en caso contrario
+     * Carga el archivo database.properties desde el classpath.
+     * Si no existe, devuelve un Properties vacío (se usarán los defaults).
+     */
+    private static Properties cargarProperties() {
+        Properties props = new Properties();
+        try (InputStream is = ConexionDB.class
+                .getClassLoader()
+                .getResourceAsStream("database.properties")) {
+
+            if (is != null) {
+                props.load(is);
+                System.out.println("✓ Configuración cargada de database.properties");
+            } else {
+                System.out.println("⚠ database.properties no encontrado, usando valores por defecto");
+            }
+        } catch (IOException e) {
+            System.err.println("⚠ Error al leer database.properties: " + e.getMessage());
+        }
+        return props;
+    }
+
+    // =========================================================
+    // UTILIDADES
+    // =========================================================
+
+    private static int intProp(Properties p, String key, int def) {
+        try { return Integer.parseInt(p.getProperty(key, String.valueOf(def))); }
+        catch (NumberFormatException e) { return def; }
+    }
+
+    private static long longProp(Properties p, String key, long def) {
+        try { return Long.parseLong(p.getProperty(key, String.valueOf(def))); }
+        catch (NumberFormatException e) { return def; }
+    }
+
+    // =========================================================
+    // CICLO DE VIDA
+    // =========================================================
+
+    /**
+     * Cierra el pool de conexiones.
+     * Llama esto cuando la aplicación se cierre (en el shutdown hook).
+     */
+    public static void cerrarPool() {
+        if (dataSource != null && !dataSource.isClosed()) {
+            dataSource.close();
+            System.out.println("Pool HikariCP cerrado correctamente.");
+        }
+    }
+
+    /**
+     * @deprecated Usar cerrarPool(). Mantenido por compatibilidad.
+     */
+    @Deprecated
+    public static void cerrarConexion() {
+        cerrarPool();
+    }
+
+    /**
+     * Verifica si el pool está activo y puede entregar conexiones.
      */
     public static boolean isConectado() {
-        try {
-            return conexion != null && !conexion.isClosed() && conexion.isValid(2);
+        if (dataSource == null || dataSource.isClosed()) return false;
+        try (Connection c = dataSource.getConnection()) {
+            return c.isValid(2);
         } catch (SQLException e) {
             return false;
         }

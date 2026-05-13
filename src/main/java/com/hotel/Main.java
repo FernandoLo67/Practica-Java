@@ -1,5 +1,6 @@
 package com.hotel;
 
+import com.hotel.util.ConexionDB;
 import com.hotel.vista.LoginForm;
 
 import javax.swing.*;
@@ -39,6 +40,12 @@ public class Main {
         // Personalizar algunos componentes globales de Swing
         UIManager.put("Button.arc", 8);
         UIManager.put("Component.arc", 8);
+
+        // Cerrar el pool HikariCP cuando la JVM se apague (Ctrl+C, botón Stop, etc.)
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            ConexionDB.cerrarPool();
+            System.out.println("=== Hotel Sistema cerrado ===");
+        }, "shutdown-hook"));
 
         // Iniciar la interfaz gráfica en el hilo de eventos de Swing (EDT)
         // SIEMPRE se debe crear la UI en el EDT para evitar problemas de concurrencia

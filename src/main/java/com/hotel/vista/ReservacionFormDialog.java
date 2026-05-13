@@ -7,8 +7,10 @@ import com.hotel.modelo.*;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.text.MaskFormatter;
 import java.awt.*;
 import java.sql.Date;
+import java.text.ParseException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -33,10 +35,10 @@ public class ReservacionFormDialog extends JDialog {
     private boolean guardadoExitoso = false;
 
     // Componentes
-    private JComboBox<Cliente>     cmbCliente;
-    private JComboBox<Habitacion>  cmbHabitacion;
-    private JTextField             txtCheckin;
-    private JTextField             txtCheckout;
+    private JComboBox<Cliente>       cmbCliente;
+    private JComboBox<Habitacion>    cmbHabitacion;
+    private JFormattedTextField      txtCheckin;
+    private JFormattedTextField      txtCheckout;
     private JComboBox<String>      cmbEstado;
     private JTextArea              txtObservaciones;
     private JLabel                 lblPrecioInfo;
@@ -143,8 +145,8 @@ public class ReservacionFormDialog extends JDialog {
         JPanel panelFechas = new JPanel(new GridLayout(1, 2, 10, 0));
         panelFechas.setOpaque(false);
 
-        txtCheckin = campoTexto();
-        txtCheckout = campoTexto();
+        txtCheckin  = campoFecha();
+        txtCheckout = campoFecha();
         txtCheckin.addActionListener(e -> actualizarInfoPrecio());
         txtCheckout.addActionListener(e -> actualizarInfoPrecio());
         txtCheckin.addFocusListener(new java.awt.event.FocusAdapter() {
@@ -238,6 +240,42 @@ public class ReservacionFormDialog extends JDialog {
         return f;
     }
 
+    /**
+     * Crea un campo de texto con máscara dd/MM/yyyy.
+     * MaskFormatter garantiza que solo se puedan ingresar dígitos
+     * en las posiciones correctas (día, mes, año) y pone '/' automáticamente.
+     */
+    private JFormattedTextField campoFecha() {
+        JFormattedTextField f;
+        try {
+            MaskFormatter mask = new MaskFormatter("##/##/####");
+            mask.setPlaceholderCharacter('_');
+            f = new JFormattedTextField(mask);
+        } catch (ParseException e) {
+            // No debería ocurrir con un patrón válido
+            f = new JFormattedTextField();
+        }
+        f.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        f.setPreferredSize(new Dimension(0, 36));
+        f.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(190, 195, 220), 1),
+            BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
+        f.setFocusLostBehavior(JFormattedTextField.PERSIST);
+        f.setToolTipText("Formato: dd/mm/aaaa");
+        return f;
+    }
+
+    /**
+     * Extrae el texto del campo de fecha limpiando el placeholder '_'.
+     * Si el campo está incompleto retorna cadena vacía.
+     */
+    private String textoFecha(JFormattedTextField campo) {
+        String txt = campo.getText().replace("_", "").trim();
+        // Un campo completo tiene exactamente 10 chars: dd/MM/yyyy
+        return txt.length() == 10 ? txt : "";
+    }
+
     private JButton boton(String texto, Color fondo, Color fuente) {
         JButton b = new JButton(texto);
         b.setFont(new Font("Segoe UI", Font.BOLD, 13));
@@ -302,8 +340,11 @@ public class ReservacionFormDialog extends JDialog {
         if (hab == null) { lblPrecioInfo.setText(" "); return; }
 
         try {
-            LocalDate ci = LocalDate.parse(txtCheckin.getText().trim(), FMT);
-            LocalDate co = LocalDate.parse(txtCheckout.getText().trim(), FMT);
+            String tci = textoFecha(txtCheckin);
+            String tco = textoFecha(txtCheckout);
+            if (tci.isEmpty() || tco.isEmpty()) throw new DateTimeParseException("", "", 0);
+            LocalDate ci = LocalDate.parse(tci, FMT);
+            LocalDate co = LocalDate.parse(tco, FMT);
             long noches = java.time.temporal.ChronoUnit.DAYS.between(ci, co);
             if (noches > 0) {
                 double total = noches * hab.getPrecioNoche();
@@ -338,8 +379,14 @@ public class ReservacionFormDialog extends JDialog {
 
         LocalDate ci, co;
         try {
-            ci = LocalDate.parse(txtCheckin.getText().trim(), FMT);
-            co = LocalDate.parse(txtCheckout.getText().trim(), FMT);
+            String tci = textoFecha(txtCheckin);
+            String tco = textoFecha(txtCheckout);
+            if (tci.isEmpty() || tco.isEmpty()) {
+                lblMensaje.setText("⚠  Ingresa las fechas completas (dd/mm/aaaa)");
+                return;
+            }
+            ci = LocalDate.parse(tci, FMT);
+            co = LocalDate.parse(tco, FMT);
         } catch (DateTimeParseException ex) {
             lblMensaje.setText("⚠  Fechas inválidas. Usa dd/mm/aaaa");
             return;

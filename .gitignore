@@ -1,1 +1,16 @@
 /target/
+
+# Credenciales de base de datos (NUNCA subir a GitHub)
+src/main/resources/database.properties
+
+# NetBeans
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+*.log

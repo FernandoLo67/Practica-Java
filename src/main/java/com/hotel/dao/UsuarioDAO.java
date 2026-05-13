@@ -68,4 +68,13 @@ public interface UsuarioDAO {
      * @return true si ya existe
      */
     boolean existeUsuario(String nombreUsuario);
+
+    /**
+     * Actualiza solo la contraseña de un usuario (ya hasheada con BCrypt).
+     *
+     * @param idUsuario ID del usuario
+     * @param nuevoHashBcrypt Hash BCrypt de la nueva contraseña
+     * @return true si se actualizó correctamente
+     */
+    boolean actualizarPassword(int idUsuario, String nuevoHashBcrypt);
 }

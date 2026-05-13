@@ -116,11 +116,19 @@ public class MenuPrincipal extends JFrame {
         JPanel panelDerecho = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
         panelDerecho.setOpaque(false);
 
-        JLabel lblUsuarioInfo = new JLabel(
-            "👤  " + usuarioActual.getNombre() + "   |   " + usuarioActual.getRol()
-        );
+        JLabel lblUsuarioInfo = new JLabel("👤  " + usuarioActual.getNombre());
         lblUsuarioInfo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         lblUsuarioInfo.setForeground(new Color(90, 95, 120));
+
+        // Badge de rol coloreado
+        JLabel lblRol = new JLabel("  " + usuarioActual.getRol() + "  ");
+        lblRol.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        lblRol.setForeground(Color.WHITE);
+        lblRol.setOpaque(true);
+        lblRol.setBackground(usuarioActual.esAdmin()
+            ? new Color(26, 35, 126)    // azul para ADMIN
+            : new Color(46, 125, 50));  // verde para RECEPCIONISTA
+        lblRol.setBorder(new EmptyBorder(3, 8, 3, 8));
 
         JButton btnCerrar = new JButton("⏻  Cerrar Sesión");
         btnCerrar.setFont(new Font("Segoe UI", Font.BOLD, 13));
@@ -153,6 +161,7 @@ public class MenuPrincipal extends JFrame {
         btnCerrar.addActionListener(e -> cerrarSesion());
 
         panelDerecho.add(lblUsuarioInfo);
+        panelDerecho.add(lblRol);
         panelDerecho.add(btnCerrar);
 
         header.add(lblLogo,      BorderLayout.WEST);
@@ -187,13 +196,31 @@ public class MenuPrincipal extends JFrame {
         sidebar.add(Box.createVerticalStrut(6));
 
         // --- Botones de módulos ---
-        sidebar.add(crearBotonMenu("🏠", "Dashboard",         "dashboard"));
-        sidebar.add(crearBotonMenu("👥", "Clientes",           "clientes"));
-        sidebar.add(crearBotonMenu("🛏", "Habitaciones",       "habitaciones"));
-        sidebar.add(crearBotonMenu("📅", "Reservaciones",      "reservaciones"));
+        sidebar.add(crearBotonMenu("🏠", "Dashboard",          "dashboard"));
+        sidebar.add(crearBotonMenu("👥", "Clientes",            "clientes"));
+        sidebar.add(crearBotonMenu("🛏", "Habitaciones",        "habitaciones"));
+        sidebar.add(crearBotonMenu("📅", "Reservaciones",       "reservaciones"));
         sidebar.add(crearBotonMenu("✅", "Check-In / Check-Out","checkin"));
-        sidebar.add(crearBotonMenu("🧾", "Facturación",        "facturacion"));
-        sidebar.add(crearBotonMenu("📊", "Reportes",           "reportes"));
+        sidebar.add(crearBotonMenu("🧾", "Facturación",         "facturacion"));
+        sidebar.add(crearBotonMenu("📊", "Reportes",            "reportes"));
+
+        // Módulo de Usuarios: SOLO para administradores
+        if (usuarioActual.esAdmin()) {
+            sidebar.add(Box.createVerticalStrut(6));
+            JSeparator sepAdmin = new JSeparator();
+            sepAdmin.setForeground(new Color(50, 65, 150));
+            sepAdmin.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
+            sidebar.add(sepAdmin);
+
+            JLabel lblAdmin = new JLabel("  ADMINISTRACIÓN");
+            lblAdmin.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            lblAdmin.setForeground(new Color(140, 160, 220));
+            lblAdmin.setBorder(new EmptyBorder(8, 18, 4, 10));
+            lblAdmin.setAlignmentX(Component.LEFT_ALIGNMENT);
+            sidebar.add(lblAdmin);
+
+            sidebar.add(crearBotonMenu("🔐", "Usuarios",        "usuarios"));
+        }
 
         // Espacio flexible que empuja el texto de versión hacia abajo
         sidebar.add(Box.createVerticalGlue());
@@ -312,6 +339,16 @@ public class MenuPrincipal extends JFrame {
                 ReportesPanel reportesPanel = new ReportesPanel();
                 panelContenido.add(reportesPanel, BorderLayout.CENTER);
                 break;
+            case "usuarios":
+                // Módulo de administración: solo ADMIN
+                if (usuarioActual.esAdmin()) {
+                    UsuariosPanel usuariosPanel = new UsuariosPanel(
+                        (Frame) SwingUtilities.getWindowAncestor(this));
+                    panelContenido.add(usuariosPanel, BorderLayout.CENTER);
+                } else {
+                    mostrarAccesoDenegado();
+                }
+                break;
         }
 
         panelContenido.revalidate();
@@ -357,6 +394,9 @@ public class MenuPrincipal extends JFrame {
         panelTarjetas.add(crearTarjetaAcceso("🛏", "Habitaciones",  "habitaciones"));
         panelTarjetas.add(crearTarjetaAcceso("📅", "Reservar",      "reservaciones"));
         panelTarjetas.add(crearTarjetaAcceso("📊", "Reportes",      "reportes"));
+        if (usuarioActual.esAdmin()) {
+            panelTarjetas.add(crearTarjetaAcceso("🔐", "Usuarios",  "usuarios"));
+        }
 
         gbc.insets = new Insets(22, 0, 0, 0);
         panel.add(panelTarjetas, gbc);
@@ -413,6 +453,37 @@ public class MenuPrincipal extends JFrame {
         });
 
         return tarjeta;
+    }
+
+    /**
+     * Muestra un panel de "Acceso denegado" cuando un usuario sin permisos
+     * intenta acceder a un módulo restringido.
+     */
+    private void mostrarAccesoDenegado() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBackground(COLOR_FONDO);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        gbc.anchor    = GridBagConstraints.CENTER;
+        gbc.insets    = new Insets(8, 0, 8, 0);
+
+        JLabel lblIcono = new JLabel("🚫");
+        lblIcono.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 48));
+        panel.add(lblIcono, gbc);
+
+        JLabel lblTitulo = new JLabel("Acceso restringido");
+        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        lblTitulo.setForeground(new Color(198, 40, 40));
+        panel.add(lblTitulo, gbc);
+
+        JLabel lblDesc = new JLabel(
+            "Este módulo solo está disponible para administradores.");
+        lblDesc.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        lblDesc.setForeground(new Color(100, 110, 140));
+        panel.add(lblDesc, gbc);
+
+        panelContenido.add(panel, BorderLayout.CENTER);
     }
 
     /**
