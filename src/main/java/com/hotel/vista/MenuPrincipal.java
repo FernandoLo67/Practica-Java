@@ -1,12 +1,19 @@
 package com.hotel.vista;
 
 import com.hotel.modelo.Usuario;
+import com.hotel.util.ConexionDB;
+import com.hotel.util.HotelConfig;
+import com.hotel.util.Tema;
 
 import javax.swing.*;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.prefs.Preferences;
 
 /**
  * Ventana principal del sistema de hotel.
@@ -43,11 +50,22 @@ public class MenuPrincipal extends JFrame {
     // =========================================================
     // COLORES DEL TEMA
     // =========================================================
-    private static final Color COLOR_SIDEBAR       = new Color(26, 35, 126);
-    private static final Color COLOR_SIDEBAR_HOVER = new Color(40, 53, 147);
-    private static final Color COLOR_SIDEBAR_BORDE = new Color(255, 160, 0);
-    private static final Color COLOR_FONDO         = new Color(243, 246, 253);
-    private static final Color COLOR_HEADER        = Color.WHITE;
+    // Colores del tema — reasignados en applyTheme() según el modo
+    private static Color COLOR_SIDEBAR;
+    private static Color COLOR_SIDEBAR_HOVER;
+    private static Color COLOR_SIDEBAR_BORDE;
+    private static Color COLOR_FONDO;
+    private static Color COLOR_HEADER;
+
+    /** Módulo que se muestra actualmente (para restaurarlo tras cambio de tema). */
+    private String moduloActivo = "dashboard";
+
+    // =========================================================
+    // PREFERENCIAS / ESTADO
+    // =========================================================
+    private static final Preferences PREFS = Preferences.userNodeForPackage(MenuPrincipal.class);
+    private JLabel lblCampana;
+    private Timer  timerCampana;
 
     // =========================================================
     // CONSTRUCTOR
@@ -55,8 +73,31 @@ public class MenuPrincipal extends JFrame {
 
     public MenuPrincipal(Usuario usuarioActual) {
         this.usuarioActual = usuarioActual;
+        // Restaurar preferencia de modo oscuro antes de construir la UI
+        boolean oscuroGuardado = PREFS.getBoolean("tema.oscuro", false);
+        Tema.setModoOscuro(oscuroGuardado);
+        aplicarTema();      // set color fields BEFORE building UI
         initComponents();
         configurarVentana();
+        restaurarTamanoYPosicion();
+        iniciarCampana();
+    }
+
+    /** Aplica los colores del sidebar/header según el modo oscuro/claro actual. */
+    private static void aplicarTema() {
+        if (Tema.isModoOscuro()) {
+            COLOR_SIDEBAR       = new Color(13,  17,  41);
+            COLOR_SIDEBAR_HOVER = new Color(26,  31,  66);
+            COLOR_SIDEBAR_BORDE = new Color(255, 180, 30);
+            COLOR_FONDO         = Tema.COLOR_FONDO;          // reads from Tema (already set)
+            COLOR_HEADER        = new Color(22,  25,  43);
+        } else {
+            COLOR_SIDEBAR       = new Color(26, 35, 126);
+            COLOR_SIDEBAR_HOVER = new Color(40, 53, 147);
+            COLOR_SIDEBAR_BORDE = new Color(255, 160, 0);
+            COLOR_FONDO         = new Color(243, 246, 253);
+            COLOR_HEADER        = Color.WHITE;
+        }
     }
 
     // =========================================================
@@ -71,10 +112,11 @@ public class MenuPrincipal extends JFrame {
         setLocationRelativeTo(null);
         setMinimumSize(new Dimension(900, 580));
 
-        // Confirmar antes de cerrar
+        // Confirmar antes de cerrar y guardar tamaño
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
+                guardarTamanoYPosicion();
                 confirmarSalida();
             }
         });
@@ -93,6 +135,26 @@ public class MenuPrincipal extends JFrame {
 
         // Mostrar pantalla de bienvenida al iniciar
         mostrarDashboard();
+
+        // Atajos globales (registrados después de construir el frame)
+        SwingUtilities.invokeLater(() -> {
+            // Ctrl+F → búsqueda global
+            getRootPane().registerKeyboardAction(
+                e -> abrirBusquedaGlobal(),
+                KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK),
+                JComponent.WHEN_IN_FOCUSED_WINDOW
+            );
+            // F5 → actualizar panel actual (navega de nuevo al mismo módulo)
+            getRootPane().registerKeyboardAction(
+                e -> {
+                    Component c = panelContenido.getComponentCount() > 0
+                        ? panelContenido.getComponent(0) : null;
+                    if (c instanceof DashboardPanel) navegarA("dashboard");
+                },
+                KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0),
+                JComponent.WHEN_IN_FOCUSED_WINDOW
+            );
+        });
     }
 
     /**
@@ -130,6 +192,37 @@ public class MenuPrincipal extends JFrame {
             : new Color(46, 125, 50));  // verde para RECEPCIONISTA
         lblRol.setBorder(new EmptyBorder(3, 8, 3, 8));
 
+        JButton btnBuscar = new JButton("🔍  Buscar...");
+        btnBuscar.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        btnBuscar.setForeground(new Color(60, 70, 130));
+        btnBuscar.setBackground(new Color(235, 239, 255));
+        btnBuscar.setOpaque(true);
+        btnBuscar.setBorderPainted(true);
+        btnBuscar.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(190, 200, 235), 1),
+            new EmptyBorder(6, 16, 6, 16)
+        ));
+        btnBuscar.setFocusPainted(false);
+        btnBuscar.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnBuscar.setToolTipText("Búsqueda global  (Ctrl+F)");
+        btnBuscar.addMouseListener(new MouseAdapter() {
+            @Override public void mouseEntered(MouseEvent e) {
+                btnBuscar.setBackground(new Color(220, 228, 255));
+                btnBuscar.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(26, 35, 126), 1),
+                    new EmptyBorder(6, 16, 6, 16)
+                ));
+            }
+            @Override public void mouseExited(MouseEvent e) {
+                btnBuscar.setBackground(new Color(235, 239, 255));
+                btnBuscar.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(190, 200, 235), 1),
+                    new EmptyBorder(6, 16, 6, 16)
+                ));
+            }
+        });
+        btnBuscar.addActionListener(e -> abrirBusquedaGlobal());
+
         JButton btnCerrar = new JButton("⏻  Cerrar Sesión");
         btnCerrar.setFont(new Font("Segoe UI", Font.BOLD, 13));
         btnCerrar.setForeground(Color.WHITE);
@@ -160,6 +253,35 @@ public class MenuPrincipal extends JFrame {
         });
         btnCerrar.addActionListener(e -> cerrarSesion());
 
+        // Campana de notificaciones
+        lblCampana = new JLabel("🔔");
+        lblCampana.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
+        lblCampana.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        lblCampana.setToolTipText("Sin check-ins pendientes hoy");
+        lblCampana.setBorder(new EmptyBorder(0, 4, 0, 8));
+        lblCampana.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) { navegarA("checkin"); }
+        });
+
+        // Botón de modo oscuro/claro
+        JButton btnTema = new JButton(Tema.isModoOscuro() ? "☀" : "🌙");
+        btnTema.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 16));
+        btnTema.setForeground(new Color(60, 70, 130));
+        btnTema.setBackground(new Color(235, 239, 255));
+        btnTema.setOpaque(true);
+        btnTema.setBorderPainted(true);
+        btnTema.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(190, 200, 235), 1),
+            new EmptyBorder(5, 10, 5, 10)
+        ));
+        btnTema.setFocusPainted(false);
+        btnTema.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnTema.setToolTipText(Tema.isModoOscuro() ? "Cambiar a modo claro" : "Cambiar a modo oscuro");
+        btnTema.addActionListener(e -> toggleModoOscuro());
+
+        panelDerecho.add(btnBuscar);
+        panelDerecho.add(btnTema);
+        panelDerecho.add(lblCampana);
         panelDerecho.add(lblUsuarioInfo);
         panelDerecho.add(lblRol);
         panelDerecho.add(btnCerrar);
@@ -220,6 +342,7 @@ public class MenuPrincipal extends JFrame {
             lblAdmin.setAlignmentX(Component.LEFT_ALIGNMENT);
             sidebar.add(lblAdmin);
 
+            sidebar.add(crearBotonMenu("🏨", "Datos del Hotel",  "hotel"));
             sidebar.add(crearBotonMenu("🔐", "Usuarios",        "usuarios"));
             sidebar.add(crearBotonMenu("🔍", "Bitácora",        "bitacora"));
         }
@@ -317,6 +440,7 @@ public class MenuPrincipal extends JFrame {
      * @param modulo Identificador del módulo a mostrar
      */
     private void navegarA(String modulo) {
+        if (!modulo.equals("cambiar-password")) moduloActivo = modulo;
         panelContenido.removeAll();
 
         switch (modulo) {
@@ -361,6 +485,14 @@ public class MenuPrincipal extends JFrame {
                 // Módulo 7: Reportes
                 ReportesPanel reportesPanel = new ReportesPanel();
                 panelContenido.add(reportesPanel, BorderLayout.CENTER);
+                break;
+            case "hotel":
+                // Datos del Hotel: solo ADMIN
+                if (usuarioActual.esAdmin()) {
+                    panelContenido.add(new DatosHotelPanel(), BorderLayout.CENTER);
+                } else {
+                    mostrarAccesoDenegado();
+                }
                 break;
             case "usuarios":
                 // Módulo de administración: solo ADMIN
@@ -523,6 +655,125 @@ public class MenuPrincipal extends JFrame {
     // =========================================================
 
     /**
+     * Abre el diálogo de búsqueda global.
+     * Al seleccionar un resultado, navega al módulo correspondiente.
+     */
+    private void abrirBusquedaGlobal() {
+        BusquedaGlobalDialog dlg = new BusquedaGlobalDialog(this, this::navegarA);
+        dlg.setVisible(true);
+    }
+
+    /**
+     * Alterna entre modo claro y oscuro, reconstruye toda la UI del frame
+     * y navega de vuelta al módulo que estaba activo.
+     */
+    private void toggleModoOscuro() {
+        Tema.toggleModo();
+        aplicarTema();
+
+        // Reconstruir la interfaz completamente
+        getContentPane().removeAll();
+        setLayout(new BorderLayout(0, 0));
+        add(crearHeader(),    BorderLayout.NORTH);
+        add(crearSidebar(),   BorderLayout.WEST);
+        add(crearContenido(), BorderLayout.CENTER);
+
+        // Re-registrar atajos globales
+        SwingUtilities.invokeLater(() -> {
+            getRootPane().registerKeyboardAction(
+                e -> abrirBusquedaGlobal(),
+                KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK),
+                JComponent.WHEN_IN_FOCUSED_WINDOW
+            );
+            getRootPane().registerKeyboardAction(
+                e -> {
+                    Component c = panelContenido.getComponentCount() > 0
+                        ? panelContenido.getComponent(0) : null;
+                    if (c instanceof DashboardPanel) navegarA("dashboard");
+                },
+                KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0),
+                JComponent.WHEN_IN_FOCUSED_WINDOW
+            );
+        });
+
+        // Volver al módulo activo con los nuevos colores
+        navegarA(moduloActivo);
+        getContentPane().revalidate();
+        getContentPane().repaint();
+    }
+
+    // =========================================================
+    // RECORDAR TAMAÑO Y POSICIÓN
+    // =========================================================
+
+    private void restaurarTamanoYPosicion() {
+        int w = PREFS.getInt("ventana.ancho",  1100);
+        int h = PREFS.getInt("ventana.alto",   680);
+        int x = PREFS.getInt("ventana.x",      -1);
+        int y = PREFS.getInt("ventana.y",      -1);
+        setSize(Math.max(900, w), Math.max(580, h));
+        if (x >= 0 && y >= 0) setLocation(x, y);
+        else setLocationRelativeTo(null);
+
+        boolean maximizado = PREFS.getBoolean("ventana.maximizado", false);
+        if (maximizado) setExtendedState(JFrame.MAXIMIZED_BOTH);
+    }
+
+    private void guardarTamanoYPosicion() {
+        PREFS.putBoolean("tema.oscuro", Tema.isModoOscuro());
+        boolean maximizado = (getExtendedState() & JFrame.MAXIMIZED_BOTH) != 0;
+        PREFS.putBoolean("ventana.maximizado", maximizado);
+        if (!maximizado) {
+            PREFS.putInt("ventana.ancho", getWidth());
+            PREFS.putInt("ventana.alto",  getHeight());
+            PREFS.putInt("ventana.x",     getX());
+            PREFS.putInt("ventana.y",     getY());
+        }
+    }
+
+    // =========================================================
+    // CAMPANA DE NOTIFICACIONES
+    // =========================================================
+
+    /**
+     * Inicia un Timer que verifica cada 60 seg cuántos check-ins
+     * hay pendientes hoy y actualiza el icono de la campana.
+     */
+    private void iniciarCampana() {
+        actualizarCampana(); // primera vez inmediata
+        timerCampana = new Timer(60_000, e -> actualizarCampana());
+        timerCampana.start();
+    }
+
+    private void actualizarCampana() {
+        new SwingWorker<Integer, Void>() {
+            @Override protected Integer doInBackground() {
+                try (Connection conn = ConexionDB.getConexion();
+                     PreparedStatement ps = conn.prepareStatement(
+                         "SELECT COUNT(*) FROM reservaciones " +
+                         "WHERE estado = 'CONFIRMADA' AND fecha_checkin = CURDATE()");
+                     ResultSet rs = ps.executeQuery()) {
+                    return rs.next() ? rs.getInt(1) : 0;
+                } catch (Exception ex) { return 0; }
+            }
+            @Override protected void done() {
+                try {
+                    int pendientes = get();
+                    if (pendientes > 0) {
+                        lblCampana.setText("🔔 " + pendientes);
+                        lblCampana.setForeground(new Color(220, 100, 0));
+                        lblCampana.setToolTipText(pendientes + " check-in(s) pendiente(s) hoy — clic para ir");
+                    } else {
+                        lblCampana.setText("🔔");
+                        lblCampana.setForeground(new Color(90, 100, 130));
+                        lblCampana.setToolTipText("Sin check-ins pendientes hoy");
+                    }
+                } catch (Exception ignored) {}
+            }
+        }.execute();
+    }
+
+    /**
      * Cierra la sesión actual y regresa al Login después de confirmar.
      */
     private void cerrarSesion() {
@@ -534,6 +785,8 @@ public class MenuPrincipal extends JFrame {
             JOptionPane.QUESTION_MESSAGE
         );
         if (opcion == JOptionPane.YES_OPTION) {
+            guardarTamanoYPosicion();
+            if (timerCampana != null) timerCampana.stop();
             new LoginForm().setVisible(true);
             dispose();
         }

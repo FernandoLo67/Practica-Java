@@ -59,15 +59,15 @@ public class HabitacionesPanel extends JPanel {
     // COLORES
     // =========================================================
     // Colores delegados a Tema.java (punto único de verdad)
-    private static final Color COLOR_PRIMARIO      = com.hotel.util.Tema.COLOR_PRIMARIO;
-    private static final Color COLOR_FONDO         = com.hotel.util.Tema.COLOR_FONDO;
-    private static final Color COLOR_HEADER        = com.hotel.util.Tema.COLOR_HEADER_TABLA;
-    private static final Color COLOR_DISPONIBLE    = com.hotel.util.Tema.COLOR_DISPONIBLE;
-    private static final Color COLOR_OCUPADA       = com.hotel.util.Tema.COLOR_OCUPADA;
-    private static final Color COLOR_RESERVADA     = com.hotel.util.Tema.COLOR_RESERVADA;
-    private static final Color COLOR_MANTENIMIENTO = com.hotel.util.Tema.COLOR_MANTENIMIENTO;
-    private static final Color COLOR_FILA_PAR      = com.hotel.util.Tema.COLOR_FILA_PAR;
-    private static final Color COLOR_FILA_IMPAR    = com.hotel.util.Tema.COLOR_FILA_IMPAR;
+    private final Color COLOR_PRIMARIO      = com.hotel.util.Tema.COLOR_PRIMARIO;
+    private final Color COLOR_FONDO         = com.hotel.util.Tema.COLOR_FONDO;
+    private final Color COLOR_HEADER        = com.hotel.util.Tema.COLOR_HEADER_TABLA;
+    private final Color COLOR_DISPONIBLE    = com.hotel.util.Tema.COLOR_DISPONIBLE;
+    private final Color COLOR_OCUPADA       = com.hotel.util.Tema.COLOR_OCUPADA;
+    private final Color COLOR_RESERVADA     = com.hotel.util.Tema.COLOR_RESERVADA;
+    private final Color COLOR_MANTENIMIENTO = com.hotel.util.Tema.COLOR_MANTENIMIENTO;
+    private final Color COLOR_FILA_PAR      = com.hotel.util.Tema.COLOR_FILA_PAR;
+    private final Color COLOR_FILA_IMPAR    = com.hotel.util.Tema.COLOR_FILA_IMPAR;
 
     private static final String[] COLUMNAS = {
         "ID", "N°", "Piso", "Tipo", "Estado", "Precio/Noche", "Capacidad", "Descripción"
@@ -84,6 +84,26 @@ public class HabitacionesPanel extends JPanel {
         setBackground(COLOR_FONDO);
         initComponents();
         cargarHabitaciones();
+        registrarAtajos();
+    }
+
+    /** F5 = Actualizar, Ctrl+E = Editar habitación seleccionada */
+    private void registrarAtajos() {
+        javax.swing.InputMap im = getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+        javax.swing.ActionMap am = getActionMap();
+
+        im.put(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F5, 0), "actualizar");
+        im.put(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_E,
+            java.awt.event.InputEvent.CTRL_DOWN_MASK), "editar");
+
+        am.put("actualizar", new javax.swing.AbstractAction() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) { cargarHabitaciones(); }
+        });
+        am.put("editar", new javax.swing.AbstractAction() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) {
+                if (btnEditar.isEnabled()) abrirEditar();
+            }
+        });
     }
 
     // =========================================================

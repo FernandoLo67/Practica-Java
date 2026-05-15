@@ -5,6 +5,7 @@ import com.hotel.dao.impl.FacturaDAOImpl;
 import com.hotel.dao.impl.HabitacionDAOImpl;
 import com.hotel.dao.impl.ReservacionDAOImpl;
 import com.hotel.util.ConexionDB;
+import com.hotel.util.HotelConfig;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
@@ -20,10 +21,12 @@ import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.Calendar;
 
 /**
  * Panel de Reportes — resumen ejecutivo del sistema.
@@ -44,8 +47,14 @@ public class ReportesPanel extends JPanel {
     private final ReservacionDAOImpl  reservacionDAO;
     private final FacturaDAOImpl      facturaDAO;
 
-    private static final Color COLOR_PRIMARIO = com.hotel.util.Tema.COLOR_PRIMARIO;
-    private static final Color COLOR_FONDO    = com.hotel.util.Tema.COLOR_FONDO;
+    private final Color COLOR_PRIMARIO = com.hotel.util.Tema.COLOR_PRIMARIO;
+    private final Color COLOR_FONDO    = com.hotel.util.Tema.COLOR_FONDO;
+
+    // Filtro de fechas
+    private JTextField txtFechaDesde;
+    private JTextField txtFechaHasta;
+    private static final SimpleDateFormat FMT_UI  = new SimpleDateFormat("dd/MM/yyyy");
+    private static final SimpleDateFormat FMT_SQL = new SimpleDateFormat("yyyy-MM-dd");
 
     public ReportesPanel() {
         this.clienteDAO     = new ClienteDAOImpl();
@@ -63,49 +72,25 @@ public class ReportesPanel extends JPanel {
     }
 
     private JPanel crearEncabezado() {
-        JPanel p = new JPanel(new BorderLayout());
+        JPanel p = new JPanel(new BorderLayout(0, 8));
         p.setBackground(Color.WHITE);
         p.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(215, 220, 240)),
             new EmptyBorder(14, 20, 14, 20)
         ));
+
+        // Fila superior: título + botones
+        JPanel filaSup = new JPanel(new BorderLayout());
+        filaSup.setOpaque(false);
+
         JLabel lbl = new JLabel("📊  Reportes y Estadísticas");
         lbl.setFont(new Font("Segoe UI", Font.BOLD, 18));
         lbl.setForeground(COLOR_PRIMARIO);
 
-        JButton btnRefresh = new JButton("🔄 Actualizar");
-        btnRefresh.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnRefresh.setForeground(Color.WHITE);
-        btnRefresh.setBackground(new Color(100, 116, 139));
-        btnRefresh.setOpaque(true);
-        btnRefresh.setBorderPainted(false);
-        btnRefresh.setBorder(new EmptyBorder(8, 14, 8, 14));
-        btnRefresh.setFocusPainted(false);
-        btnRefresh.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnRefresh.addActionListener(e -> {
-            removeAll();
-            initComponents();
-            revalidate();
-            repaint();
-        });
+        JButton btnRefresh = botonHeader("🔄 Actualizar", new Color(100, 116, 139));
+        btnRefresh.addActionListener(e -> { removeAll(); initComponents(); revalidate(); repaint(); });
 
-        JButton btnPDF = new JButton("📄 Exportar PDF");
-        btnPDF.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnPDF.setForeground(Color.WHITE);
-        btnPDF.setBackground(new Color(183, 28, 28));
-        btnPDF.setOpaque(true);
-        btnPDF.setBorderPainted(false);
-        btnPDF.setBorder(new EmptyBorder(8, 14, 8, 14));
-        btnPDF.setFocusPainted(false);
-        btnPDF.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnPDF.addMouseListener(new MouseAdapter() {
-            @Override public void mouseEntered(MouseEvent e) {
-                btnPDF.setBackground(new Color(211, 47, 47));
-            }
-            @Override public void mouseExited(MouseEvent e) {
-                btnPDF.setBackground(new Color(183, 28, 28));
-            }
-        });
+        JButton btnPDF = botonHeader("📄 Exportar PDF", new Color(183, 28, 28));
         btnPDF.addActionListener(e -> exportarPDF());
 
         JPanel botones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
@@ -113,9 +98,112 @@ public class ReportesPanel extends JPanel {
         botones.add(btnRefresh);
         botones.add(btnPDF);
 
-        p.add(lbl,     BorderLayout.WEST);
-        p.add(botones, BorderLayout.EAST);
+        filaSup.add(lbl,     BorderLayout.WEST);
+        filaSup.add(botones, BorderLayout.EAST);
+
+        // Fila inferior: filtro de fechas
+        JPanel filaFechas = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        filaFechas.setOpaque(false);
+
+        // Valores por defecto: primer día del mes hasta hoy
+        Calendar cal = Calendar.getInstance();
+        String hoy = FMT_UI.format(cal.getTime());
+        cal.set(Calendar.DAY_OF_MONTH, 1);
+        String primerDia = FMT_UI.format(cal.getTime());
+
+        filaFechas.add(label("Desde:"));
+        txtFechaDesde = campoPequeno(primerDia);
+        filaFechas.add(txtFechaDesde);
+        filaFechas.add(label("Hasta:"));
+        txtFechaHasta = campoPequeno(hoy);
+        filaFechas.add(txtFechaHasta);
+
+        JButton btnFiltrar = botonHeader("🔍 Filtrar", COLOR_PRIMARIO);
+        btnFiltrar.addActionListener(e -> { removeAll(); initComponents(); revalidate(); repaint(); });
+        filaFechas.add(btnFiltrar);
+
+        JButton btnHoy     = botonSmall("Hoy");
+        JButton btnMes     = botonSmall("Este mes");
+        JButton btnAnio    = botonSmall("Este ano");
+        btnHoy.addActionListener(e  -> setRango(0,  0));
+        btnMes.addActionListener(e  -> setRango(30, 0));
+        btnAnio.addActionListener(e -> setRango(365,0));
+        filaFechas.add(btnHoy);
+        filaFechas.add(btnMes);
+        filaFechas.add(btnAnio);
+
+        p.add(filaSup,    BorderLayout.NORTH);
+        p.add(filaFechas, BorderLayout.SOUTH);
         return p;
+    }
+
+    private void setRango(int diasAtras, int diasAdelante) {
+        Calendar desde = Calendar.getInstance();
+        desde.add(Calendar.DAY_OF_YEAR, -diasAtras);
+        Calendar hasta = Calendar.getInstance();
+        hasta.add(Calendar.DAY_OF_YEAR, diasAdelante);
+        txtFechaDesde.setText(FMT_UI.format(desde.getTime()));
+        txtFechaHasta.setText(FMT_UI.format(hasta.getTime()));
+        removeAll(); initComponents(); revalidate(); repaint();
+    }
+
+    /** Devuelve las fechas del filtro en formato SQL yyyy-MM-dd. */
+    private String[] getFechasSql() {
+        try {
+            String desde = FMT_SQL.format(FMT_UI.parse(txtFechaDesde.getText().trim()));
+            String hasta = FMT_SQL.format(FMT_UI.parse(txtFechaHasta.getText().trim()));
+            return new String[]{ desde, hasta };
+        } catch (ParseException e) {
+            // Si el formato es inválido, usar el mes actual
+            Calendar c = Calendar.getInstance();
+            String hoy = FMT_SQL.format(c.getTime());
+            c.set(Calendar.DAY_OF_MONTH, 1);
+            return new String[]{ FMT_SQL.format(c.getTime()), hoy };
+        }
+    }
+
+    private JButton botonHeader(String texto, Color bg) {
+        JButton b = new JButton(texto);
+        b.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        b.setForeground(Color.WHITE);
+        b.setBackground(bg);
+        b.setOpaque(true);
+        b.setBorderPainted(false);
+        b.setBorder(new EmptyBorder(7, 12, 7, 12));
+        b.setFocusPainted(false);
+        b.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        return b;
+    }
+
+    private JButton botonSmall(String texto) {
+        JButton b = new JButton(texto);
+        b.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        b.setBackground(new Color(235, 239, 255));
+        b.setForeground(COLOR_PRIMARIO);
+        b.setOpaque(true);
+        b.setBorderPainted(false);
+        b.setBorder(new EmptyBorder(5, 10, 5, 10));
+        b.setFocusPainted(false);
+        b.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        return b;
+    }
+
+    private JLabel label(String t) {
+        JLabel l = new JLabel(t);
+        l.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        l.setForeground(new Color(60, 70, 100));
+        return l;
+    }
+
+    private JTextField campoPequeno(String valor) {
+        JTextField f = new JTextField(valor, 10);
+        f.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        f.setPreferredSize(new Dimension(100, 28));
+        f.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(190, 200, 225), 1),
+            BorderFactory.createEmptyBorder(3, 8, 3, 8)
+        ));
+        return f;
     }
 
     private JScrollPane crearContenido() {
@@ -146,18 +234,36 @@ public class ReportesPanel extends JPanel {
         panel.setOpaque(false);
         panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
+        String[] fechas = getFechasSql();
         int totalClientes     = clienteDAO.contarTodos();
         int disponibles       = habitacionDAO.contarPorEstado("DISPONIBLE");
         int ocupadas          = habitacionDAO.contarPorEstado("OCUPADA");
-        int resActivas        = reservacionDAO.contarPorEstado("PENDIENTE")
-                              + reservacionDAO.contarPorEstado("CONFIRMADA")
-                              + reservacionDAO.contarPorEstado("CHECKIN");
-        double ingresosTotales = facturaDAO.sumarTotalPorEstado("PAGADA");
+        double ingresosPeriodo = 0;
+        int    resPeriodo      = 0;
 
-        panel.add(kpi("👥", "Clientes",          String.valueOf(totalClientes),     new Color(63, 81, 181)));
-        panel.add(kpi("🟢", "Hab. Disponibles",  String.valueOf(disponibles),       new Color(46, 125, 50)));
-        panel.add(kpi("🔴", "Hab. Ocupadas",     String.valueOf(ocupadas),          new Color(198, 40, 40)));
-        panel.add(kpi("💰", "Ingresos (Pagados)", String.format("Q %.0f", ingresosTotales), new Color(230, 81, 0)));
+        try (Connection conn = ConexionDB.getConexion()) {
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT COALESCE(SUM(total),0) FROM facturas " +
+                    "WHERE estado='PAGADA' AND fecha_emision BETWEEN ? AND ?")) {
+                ps.setDate(1, Date.valueOf(fechas[0]));
+                ps.setDate(2, Date.valueOf(fechas[1]));
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) ingresosPeriodo = rs.getDouble(1);
+            }
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT COUNT(*) FROM reservaciones " +
+                    "WHERE fecha_reserva BETWEEN ? AND ?")) {
+                ps.setDate(1, Date.valueOf(fechas[0]));
+                ps.setDate(2, Date.valueOf(fechas[1]));
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) resPeriodo = rs.getInt(1);
+            }
+        } catch (Exception ignored) {}
+
+        panel.add(kpi("👥", "Total Clientes",     String.valueOf(totalClientes),          new Color(63, 81, 181)));
+        panel.add(kpi("📅", "Reservas (periodo)", String.valueOf(resPeriodo),             new Color(46, 125, 50)));
+        panel.add(kpi("🔴", "Hab. Ocupadas",      String.valueOf(ocupadas),               new Color(198, 40, 40)));
+        panel.add(kpi("💰", "Ingresos (periodo)", String.format("Q %.2f", ingresosPeriodo), new Color(230, 81, 0)));
 
         return panel;
     }
@@ -358,7 +464,7 @@ public class ReportesPanel extends JPanel {
         chooser.setDialogTitle("Guardar reporte como PDF");
         chooser.setFileFilter(new FileNameExtensionFilter("Archivos PDF (*.pdf)", "pdf"));
         String nombre = "Reporte_Hotel_" +
-            new SimpleDateFormat("yyyyMMdd_HHmm").format(new Date()) + ".pdf";
+            new SimpleDateFormat("yyyyMMdd_HHmm").format(new java.util.Date()) + ".pdf";
         chooser.setSelectedFile(new File(nombre));
 
         if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
@@ -367,6 +473,9 @@ public class ReportesPanel extends JPanel {
         if (!archivo.getName().toLowerCase().endsWith(".pdf")) {
             archivo = new File(archivo.getAbsolutePath() + ".pdf");
         }
+        // Verificar que el filtro de fechas existe (puede ser null si viene del refreshed state)
+        if (txtFechaDesde == null) txtFechaDesde = campoPequeno("01/01/2024");
+        if (txtFechaHasta == null) txtFechaHasta = campoPequeno(new SimpleDateFormat("dd/MM/yyyy").format(new java.util.Date()));
 
         final File destino = archivo;
         setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
@@ -429,18 +538,20 @@ public class ReportesPanel extends JPanel {
                 cs.addRect(0, y - 10, ancho, 55);
                 cs.fill();
 
+                String[] fechasFiltro = getFechasSql();
                 cs.beginText();
                 cs.setFont(PDType1Font.HELVETICA_BOLD, 20);
                 cs.setNonStrokingColor(1f, 1f, 1f);
                 cs.newLineAtOffset(margen, y + 20);
-                cs.showText("HOTEL SISTEMA - Reporte Ejecutivo");
+                cs.showText(HotelConfig.getNombre() + " - Reporte Ejecutivo");
                 cs.endText();
 
                 cs.beginText();
                 cs.setFont(PDType1Font.HELVETICA, 11);
                 cs.setNonStrokingColor(0.7f, 0.8f, 1f);
                 cs.newLineAtOffset(margen, y + 4);
-                cs.showText("Generado el: " + new SimpleDateFormat("dd/MM/yyyy HH:mm").format(new Date()));
+                cs.showText("Periodo: " + txtFechaDesde.getText() + " al " + txtFechaHasta.getText()
+                    + "   Generado: " + new SimpleDateFormat("dd/MM/yyyy HH:mm").format(new java.util.Date()));
                 cs.endText();
 
                 y -= 70;
@@ -566,8 +677,8 @@ public class ReportesPanel extends JPanel {
                 cs.beginText();
                 cs.setFont(PDType1Font.HELVETICA_OBLIQUE, 9);
                 cs.newLineAtOffset(margen, 30);
-                cs.showText("Hotel Sistema v2.0  ·  Reporte generado automáticamente  ·  " +
-                    new SimpleDateFormat("dd/MM/yyyy HH:mm").format(new Date()));
+                cs.showText(HotelConfig.getNombre() + "  -  Reporte generado automaticamente  -  " +
+                    new SimpleDateFormat("dd/MM/yyyy HH:mm").format(new java.util.Date()));
                 cs.endText();
             }
 

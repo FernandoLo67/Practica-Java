@@ -87,6 +87,30 @@ public class ClientesPanel extends JPanel {
         add(crearBarraEstado(), BorderLayout.SOUTH);
 
         cargarClientes();
+        registrarAtajos();
+    }
+
+    /** Ctrl+N = Nuevo, F5 = Actualizar, Supr = Eliminar */
+    private void registrarAtajos() {
+        javax.swing.InputMap im = getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+        javax.swing.ActionMap am = getActionMap();
+
+        im.put(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_N,
+            java.awt.event.InputEvent.CTRL_DOWN_MASK), "nuevo");
+        im.put(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F5, 0), "actualizar");
+        im.put(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_DELETE, 0), "eliminar");
+
+        am.put("nuevo",      new javax.swing.AbstractAction() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) { abrirFormNuevo(); }
+        });
+        am.put("actualizar", new javax.swing.AbstractAction() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) { cargarClientes(); }
+        });
+        am.put("eliminar",   new javax.swing.AbstractAction() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) {
+                if (btnEliminar.isEnabled()) eliminarCliente();
+            }
+        });
     }
 
     // =========================================================

@@ -57,16 +57,16 @@ public class ReservacionesPanel extends JPanel {
     // COLORES
     // =========================================================
     // Colores delegados a Tema.java
-    private static final Color COLOR_PRIMARIO   = com.hotel.util.Tema.COLOR_PRIMARIO;
-    private static final Color COLOR_FONDO      = com.hotel.util.Tema.COLOR_FONDO;
-    private static final Color COLOR_HEADER     = com.hotel.util.Tema.COLOR_HEADER_TABLA;
-    private static final Color COLOR_PENDIENTE  = com.hotel.util.Tema.COLOR_PENDIENTE;
-    private static final Color COLOR_CONFIRMADA = com.hotel.util.Tema.COLOR_CONFIRMADA;
-    private static final Color COLOR_CHECKIN    = com.hotel.util.Tema.COLOR_CHECKIN;
-    private static final Color COLOR_CHECKOUT   = com.hotel.util.Tema.COLOR_CHECKOUT;
-    private static final Color COLOR_CANCELADA  = com.hotel.util.Tema.COLOR_CANCELADA;
-    private static final Color COLOR_FILA_PAR   = com.hotel.util.Tema.COLOR_FILA_PAR;
-    private static final Color COLOR_FILA_IMPAR = com.hotel.util.Tema.COLOR_FILA_IMPAR;
+    private final Color COLOR_PRIMARIO   = com.hotel.util.Tema.COLOR_PRIMARIO;
+    private final Color COLOR_FONDO      = com.hotel.util.Tema.COLOR_FONDO;
+    private final Color COLOR_HEADER     = com.hotel.util.Tema.COLOR_HEADER_TABLA;
+    private final Color COLOR_PENDIENTE  = com.hotel.util.Tema.COLOR_PENDIENTE;
+    private final Color COLOR_CONFIRMADA = com.hotel.util.Tema.COLOR_CONFIRMADA;
+    private final Color COLOR_CHECKIN    = com.hotel.util.Tema.COLOR_CHECKIN;
+    private final Color COLOR_CHECKOUT   = com.hotel.util.Tema.COLOR_CHECKOUT;
+    private final Color COLOR_CANCELADA  = com.hotel.util.Tema.COLOR_CANCELADA;
+    private final Color COLOR_FILA_PAR   = com.hotel.util.Tema.COLOR_FILA_PAR;
+    private final Color COLOR_FILA_IMPAR = com.hotel.util.Tema.COLOR_FILA_IMPAR;
 
     private static final String[] COLUMNAS = {
         "ID", "Cliente", "Documento", "Habitación", "Tipo", "Check-In", "Check-Out", "Noches", "Total (Q)", "Estado"
@@ -84,6 +84,31 @@ public class ReservacionesPanel extends JPanel {
         setBackground(COLOR_FONDO);
         initComponents();
         cargarReservaciones();
+        registrarAtajos();
+    }
+
+    /** Ctrl+N = Nueva, F5 = Actualizar, Ctrl+E = Editar */
+    private void registrarAtajos() {
+        javax.swing.InputMap im = getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+        javax.swing.ActionMap am = getActionMap();
+
+        im.put(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_N,
+            java.awt.event.InputEvent.CTRL_DOWN_MASK), "nueva");
+        im.put(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F5, 0), "actualizar");
+        im.put(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_E,
+            java.awt.event.InputEvent.CTRL_DOWN_MASK), "editar");
+
+        am.put("nueva",      new javax.swing.AbstractAction() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) { abrirFormNuevo(); }
+        });
+        am.put("actualizar", new javax.swing.AbstractAction() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) { cargarReservaciones(); }
+        });
+        am.put("editar",     new javax.swing.AbstractAction() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) {
+                if (btnEditar.isEnabled()) abrirFormEditar();
+            }
+        });
     }
 
     // =========================================================

@@ -3,15 +3,27 @@ package com.hotel.vista;
 import com.hotel.dao.impl.FacturaDAOImpl;
 import com.hotel.modelo.Bitacora;
 import com.hotel.modelo.Factura;
+import com.hotel.modelo.Reservacion;
 import com.hotel.util.BitacoraService;
+import com.hotel.util.HotelConfig;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.Desktop;
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.List;
 
 /**
@@ -29,19 +41,20 @@ public class FacturasPanel extends JPanel {
     private JButton           btnPagar;
     private JButton           btnAnular;
     private JButton           btnDetalle;
+    private JButton           btnImprimir;
 
     private final FacturaDAOImpl facturaDAO;
     private final Frame          ventanaPadre;
 
     // Colores delegados a Tema.java
-    private static final Color COLOR_PRIMARIO   = com.hotel.util.Tema.COLOR_PRIMARIO;
-    private static final Color COLOR_FONDO      = com.hotel.util.Tema.COLOR_FONDO;
-    private static final Color COLOR_HEADER     = com.hotel.util.Tema.COLOR_HEADER_TABLA;
-    private static final Color COLOR_PENDIENTE  = com.hotel.util.Tema.COLOR_PENDIENTE;
-    private static final Color COLOR_PAGADA     = com.hotel.util.Tema.COLOR_EXITO;
-    private static final Color COLOR_ANULADA    = com.hotel.util.Tema.COLOR_ERROR;
-    private static final Color COLOR_FILA_PAR   = com.hotel.util.Tema.COLOR_FILA_PAR;
-    private static final Color COLOR_FILA_IMPAR = com.hotel.util.Tema.COLOR_FILA_IMPAR;
+    private final Color COLOR_PRIMARIO   = com.hotel.util.Tema.COLOR_PRIMARIO;
+    private final Color COLOR_FONDO      = com.hotel.util.Tema.COLOR_FONDO;
+    private final Color COLOR_HEADER     = com.hotel.util.Tema.COLOR_HEADER_TABLA;
+    private final Color COLOR_PENDIENTE  = com.hotel.util.Tema.COLOR_PENDIENTE;
+    private final Color COLOR_PAGADA     = com.hotel.util.Tema.COLOR_EXITO;
+    private final Color COLOR_ANULADA    = com.hotel.util.Tema.COLOR_ERROR;
+    private final Color COLOR_FILA_PAR   = com.hotel.util.Tema.COLOR_FILA_PAR;
+    private final Color COLOR_FILA_IMPAR = com.hotel.util.Tema.COLOR_FILA_IMPAR;
 
     private static final String[] COLUMNAS = {
         "ID", "Cliente", "Habitación", "Fecha Emisión", "Subtotal (Q)", "IVA (Q)", "Total (Q)", "Método Pago", "Estado"
@@ -54,7 +67,28 @@ public class FacturasPanel extends JPanel {
         setBackground(COLOR_FONDO);
         initComponents();
         cargarFacturas();
+        registrarAtajos();
     }
+
+    /** F5 = Actualizar, Ctrl+P = Imprimir PDF */
+    private void registrarAtajos() {
+        javax.swing.InputMap im = getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+        javax.swing.ActionMap am = getActionMap();
+
+        im.put(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F5, 0), "actualizar");
+        im.put(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_P,
+            java.awt.event.InputEvent.CTRL_DOWN_MASK), "pdf");
+
+        am.put("actualizar", new javax.swing.AbstractAction() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) { cargarFacturas(); }
+        });
+        am.put("pdf", new javax.swing.AbstractAction() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) {
+                if (btnImprimir.isEnabled()) imprimirFacturaPDF();
+            }
+        });
+    }
+
 
     private void initComponents() {
         add(crearEncabezado(),  BorderLayout.NORTH);
@@ -82,13 +116,17 @@ public class FacturasPanel extends JPanel {
         btnPagar   = crearBoton("✅ Marcar Pagada", new Color(46, 125, 50), true);
         btnAnular  = crearBoton("✖ Anular", new Color(198, 40, 40), true);
 
-        btnRefresh.addActionListener(e -> cargarFacturas());
-        btnDetalle.addActionListener(e -> verDetalle());
-        btnPagar  .addActionListener(e -> cambiarEstado(Factura.ESTADO_PAGADA));
-        btnAnular .addActionListener(e -> cambiarEstado(Factura.ESTADO_ANULADA));
+        btnImprimir = crearBoton("🖨 Imprimir PDF", new Color(123, 31, 162), true);
+
+        btnRefresh .addActionListener(e -> cargarFacturas());
+        btnDetalle .addActionListener(e -> verDetalle());
+        btnPagar   .addActionListener(e -> cambiarEstado(Factura.ESTADO_PAGADA));
+        btnAnular  .addActionListener(e -> cambiarEstado(Factura.ESTADO_ANULADA));
+        btnImprimir.addActionListener(e -> imprimirFacturaPDF());
 
         botones.add(btnRefresh);
         botones.add(btnDetalle);
+        botones.add(btnImprimir);
         botones.add(btnPagar);
         botones.add(btnAnular);
 
@@ -215,6 +253,7 @@ public class FacturasPanel extends JPanel {
             btnPagar.setEnabled(hay);
             btnAnular.setEnabled(hay);
             btnDetalle.setEnabled(hay);
+            btnImprimir.setEnabled(hay);
         });
 
         JScrollPane scroll = new JScrollPane(tabla);
@@ -257,6 +296,7 @@ public class FacturasPanel extends JPanel {
         btnPagar.setEnabled(false);
         btnAnular.setEnabled(false);
         btnDetalle.setEnabled(false);
+        btnImprimir.setEnabled(false);
     }
 
     private void verDetalle() {
@@ -338,6 +378,350 @@ public class FacturasPanel extends JPanel {
                     JOptionPane.ERROR_MESSAGE);
             }
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // IMPRESIÓN PDF
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void imprimirFacturaPDF() {
+        int fila = tabla.getSelectedRow();
+        if (fila < 0) return;
+        int filaM = tabla.convertRowIndexToModel(fila);
+        int id    = (int) modeloTabla.getValueAt(filaM, 0);
+
+        Factura f = facturaDAO.buscarPorId(id);
+        if (f == null) {
+            JOptionPane.showMessageDialog(this, "No se pudo cargar la factura.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // ── Elegir ubicación de guardado ──────────────────────────────────────
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("Guardar Factura PDF");
+        fc.setFileFilter(new FileNameExtensionFilter("Archivo PDF (*.pdf)", "pdf"));
+        String nombreSugerido = "Factura_" + f.getId() + "_" +
+            f.getReservacion().getCliente().getNombreCompleto()
+                .replaceAll("[^a-zA-Z0-9]", "_") + ".pdf";
+        fc.setSelectedFile(new File(nombreSugerido));
+
+        if (fc.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        File destino = fc.getSelectedFile();
+        if (!destino.getName().toLowerCase().endsWith(".pdf"))
+            destino = new File(destino.getAbsolutePath() + ".pdf");
+
+        // ── Generar PDF con PDFBox ────────────────────────────────────────────
+        try {
+            generarPDF(f, destino);
+            lblEstado.setText("PDF generado: " + destino.getName());
+
+            int op = JOptionPane.showConfirmDialog(this,
+                "Factura guardada en:\n" + destino.getAbsolutePath() +
+                "\n\n¿Deseas abrir el archivo ahora?",
+                "PDF generado", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
+            if (op == JOptionPane.YES_OPTION) {
+                try { Desktop.getDesktop().open(destino); }
+                catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this,
+                        "No se pudo abrir el archivo automaticamente.\nUbicacion: " + destino.getAbsolutePath(),
+                        "Aviso", JOptionPane.WARNING_MESSAGE);
+                }
+            }
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this,
+                "Error al generar el PDF:\n" + ex.getMessage(),
+                "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void generarPDF(Factura f, File destino) throws IOException {
+        // Datos de la factura
+        Reservacion res = f.getReservacion();
+        String nombreCliente  = res.getCliente().getNombreCompleto();
+        String docCliente     = res.getCliente().getDocumento();
+        String numHab         = res.getHabitacion().getNumero();
+        int    pisoHab        = res.getHabitacion().getPiso();
+        String tipoHab        = res.getHabitacion().getTipo().getNombre();
+        String checkin        = res.getFechaCheckin()  != null ? res.getFechaCheckin().toString()  : "-";
+        String checkout       = res.getFechaCheckout() != null ? res.getFechaCheckout().toString() : "-";
+        int    noches         = (int) res.getNoches();
+        String fechaEmision   = f.getFechaEmision() != null
+            ? new SimpleDateFormat("dd/MM/yyyy HH:mm").format(f.getFechaEmision()) : "-";
+
+        // Colores
+        Color azulOscuro = new Color(26, 35, 126);
+        Color azulClaro  = new Color(63, 81, 181);
+
+        try (PDDocument doc = new PDDocument()) {
+            PDPage page = new PDPage(PDRectangle.A4);
+            doc.addPage(page);
+
+            float W  = page.getMediaBox().getWidth();   // 595 pt
+            float H  = page.getMediaBox().getHeight();  // 842 pt
+            float mg = 48f;                              // margen izquierdo/derecho
+
+            try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
+
+                // ── Encabezado azul ──────────────────────────────────────────
+                setColor(cs, azulOscuro);
+                cs.addRect(0, H - 90, W, 90);
+                cs.fill();
+
+                // Nombre del hotel
+                cs.beginText();
+                cs.setFont(PDType1Font.HELVETICA_BOLD, 20);
+                setColorText(cs, Color.WHITE);
+                cs.newLineAtOffset(mg, H - 42);
+                cs.showText(HotelConfig.getNombre());
+                cs.endText();
+
+                // Slogan y dirección
+                cs.beginText();
+                cs.setFont(PDType1Font.HELVETICA, 9);
+                setColorText(cs, new Color(200, 210, 255));
+                cs.newLineAtOffset(mg, H - 57);
+                cs.showText(HotelConfig.getSlogan());
+                cs.endText();
+
+                cs.beginText();
+                cs.setFont(PDType1Font.HELVETICA, 9);
+                setColorText(cs, new Color(200, 210, 255));
+                cs.newLineAtOffset(mg, H - 70);
+                cs.showText(HotelConfig.getDireccion() + "   |   " +
+                    HotelConfig.getTelefono() + "   |   " + HotelConfig.getEmail());
+                cs.endText();
+
+                // NIT (derecha)
+                String nitTxt = "NIT: " + HotelConfig.getNit();
+                float nitW = PDType1Font.HELVETICA_BOLD.getStringWidth(nitTxt) / 1000 * 10;
+                cs.beginText();
+                cs.setFont(PDType1Font.HELVETICA_BOLD, 10);
+                setColorText(cs, Color.WHITE);
+                cs.newLineAtOffset(W - mg - nitW, H - 42);
+                cs.showText(nitTxt);
+                cs.endText();
+
+                // ── Título FACTURA ────────────────────────────────────────────
+                float y = H - 115;
+                setColor(cs, azulClaro);
+                cs.addRect(mg, y, W - 2 * mg, 26);
+                cs.fill();
+
+                cs.beginText();
+                cs.setFont(PDType1Font.HELVETICA_BOLD, 13);
+                setColorText(cs, Color.WHITE);
+                cs.newLineAtOffset(mg + 8, y + 8);
+                cs.showText("FACTURA No. " + String.format("%05d", f.getId()));
+                cs.endText();
+
+                // Fecha emisión (derecha del banner)
+                String fechaTxt = "Emision: " + fechaEmision;
+                float fechaW = PDType1Font.HELVETICA.getStringWidth(fechaTxt) / 1000 * 11;
+                cs.beginText();
+                cs.setFont(PDType1Font.HELVETICA, 11);
+                setColorText(cs, Color.WHITE);
+                cs.newLineAtOffset(W - mg - fechaW - 8, y + 8);
+                cs.showText(fechaTxt);
+                cs.endText();
+
+                // ── Sección datos del cliente ─────────────────────────────────
+                y -= 30;
+                setColorText(cs, azulOscuro);
+                cs.beginText();
+                cs.setFont(PDType1Font.HELVETICA_BOLD, 11);
+                setColorText(cs, azulOscuro);
+                cs.newLineAtOffset(mg, y);
+                cs.showText("DATOS DEL CLIENTE");
+                cs.endText();
+
+                lineaHorizontal(cs, mg, y - 4, W - 2 * mg, azulClaro);
+                y -= 18;
+
+                y = filaTexto(cs, mg, y, "Cliente:",  nombreCliente);
+                y = filaTexto(cs, mg, y, "Documento:", docCliente);
+
+                // ── Sección datos de la reservación ───────────────────────────
+                y -= 14;
+                cs.beginText();
+                cs.setFont(PDType1Font.HELVETICA_BOLD, 11);
+                setColorText(cs, azulOscuro);
+                cs.newLineAtOffset(mg, y);
+                cs.showText("DETALLE DE LA RESERVACION");
+                cs.endText();
+
+                lineaHorizontal(cs, mg, y - 4, W - 2 * mg, azulClaro);
+                y -= 18;
+
+                y = filaTexto(cs, mg, y, "Habitacion:",   "No. " + numHab + " — Piso " + pisoHab + " — " + tipoHab);
+                y = filaTexto(cs, mg, y, "Check-In:",     checkin);
+                y = filaTexto(cs, mg, y, "Check-Out:",    checkout);
+                y = filaTexto(cs, mg, y, "Noches:",       String.valueOf(noches));
+
+                // ── Tabla de importes ─────────────────────────────────────────
+                y -= 20;
+                float colLabel = mg;
+                float colValue = W - mg - 90;
+                float rowH     = 22f;
+
+                // Cabecera tabla
+                setColor(cs, azulOscuro);
+                cs.addRect(colLabel, y - 2, W - 2 * mg, rowH);
+                cs.fill();
+
+                cs.beginText();
+                cs.setFont(PDType1Font.HELVETICA_BOLD, 10);
+                setColorText(cs, Color.WHITE);
+                cs.newLineAtOffset(colLabel + 8, y + 6);
+                cs.showText("CONCEPTO");
+                cs.endText();
+
+                cs.beginText();
+                cs.setFont(PDType1Font.HELVETICA_BOLD, 10);
+                setColorText(cs, Color.WHITE);
+                cs.newLineAtOffset(colValue, y + 6);
+                cs.showText("IMPORTE");
+                cs.endText();
+
+                y -= rowH;
+
+                // Fila Subtotal
+                y = filaImporte(cs, colLabel, colValue, y, rowH,
+                    "Hospedaje (" + noches + " noche(s) x Q " +
+                        String.format("%.2f", f.getSubtotal() / noches) + ")",
+                    String.format("Q %.2f", f.getSubtotal()), new Color(240, 244, 255));
+
+                // Fila IVA
+                y = filaImporte(cs, colLabel, colValue, y, rowH,
+                    "IVA (18%)",
+                    String.format("Q %.2f", f.getImpuesto()), Color.WHITE);
+
+                // Separador
+                lineaHorizontal(cs, mg, y + rowH - 4, W - 2 * mg, azulClaro);
+
+                // Fila Total — resaltada
+                setColor(cs, new Color(230, 235, 255));
+                cs.addRect(colLabel, y - 2, W - 2 * mg, rowH);
+                cs.fill();
+
+                cs.beginText();
+                cs.setFont(PDType1Font.HELVETICA_BOLD, 11);
+                setColorText(cs, azulOscuro);
+                cs.newLineAtOffset(colLabel + 8, y + 6);
+                cs.showText("TOTAL A PAGAR");
+                cs.endText();
+
+                cs.beginText();
+                cs.setFont(PDType1Font.HELVETICA_BOLD, 13);
+                setColorText(cs, azulOscuro);
+                cs.newLineAtOffset(colValue, y + 5);
+                cs.showText(String.format("Q %.2f", f.getTotal()));
+                cs.endText();
+
+                y -= rowH + 18;
+
+                // ── Método de pago y estado ───────────────────────────────────
+                y = filaTexto(cs, mg, y, "Metodo de pago:", f.getMetodoPago());
+                Color colorEstado = "PAGADA".equals(f.getEstado()) ? new Color(27, 94, 32)
+                    : "ANULADA".equals(f.getEstado()) ? new Color(183, 28, 28)
+                    : new Color(230, 81, 0);
+                cs.beginText();
+                cs.setFont(PDType1Font.HELVETICA, 11);
+                setColorText(cs, new Color(80, 80, 80));
+                cs.newLineAtOffset(mg, y);
+                cs.showText("Estado:");
+                cs.endText();
+
+                cs.beginText();
+                cs.setFont(PDType1Font.HELVETICA_BOLD, 11);
+                setColorText(cs, colorEstado);
+                cs.newLineAtOffset(mg + 130, y);
+                cs.showText(f.getEstado());
+                cs.endText();
+                y -= 16;
+
+                // ── Pie de página ─────────────────────────────────────────────
+                float pieY = 36f;
+                lineaHorizontal(cs, mg, pieY + 14, W - 2 * mg, new Color(180, 190, 220));
+
+                cs.beginText();
+                cs.setFont(PDType1Font.HELVETICA, 8);
+                setColorText(cs, new Color(130, 140, 170));
+                cs.newLineAtOffset(mg, pieY);
+                cs.showText("Este documento es la factura oficial emitida por " +
+                    HotelConfig.getNombre() + ".  Conserve este comprobante.");
+                cs.endText();
+
+                String webTxt = HotelConfig.getWeb();
+                float webW = PDType1Font.HELVETICA.getStringWidth(webTxt) / 1000 * 8;
+                cs.beginText();
+                cs.setFont(PDType1Font.HELVETICA, 8);
+                setColorText(cs, new Color(130, 140, 170));
+                cs.newLineAtOffset(W - mg - webW, pieY);
+                cs.showText(webTxt);
+                cs.endText();
+            }
+
+            doc.save(destino);
+        }
+    }
+
+    // ── Helpers de dibujo PDFBox ──────────────────────────────────────────────
+
+    private void setColor(PDPageContentStream cs, Color c) throws IOException {
+        cs.setNonStrokingColor(c.getRed() / 255f, c.getGreen() / 255f, c.getBlue() / 255f);
+    }
+
+    private void setColorText(PDPageContentStream cs, Color c) throws IOException {
+        cs.setNonStrokingColor(c.getRed() / 255f, c.getGreen() / 255f, c.getBlue() / 255f);
+    }
+
+    private void lineaHorizontal(PDPageContentStream cs, float x, float y, float ancho, Color c) throws IOException {
+        setColor(cs, c);
+        cs.addRect(x, y, ancho, 1);
+        cs.fill();
+    }
+
+    /** Dibuja una fila etiqueta-valor y retorna la siguiente Y. */
+    private float filaTexto(PDPageContentStream cs, float x, float y, String label, String valor) throws IOException {
+        cs.beginText();
+        cs.setFont(PDType1Font.HELVETICA, 11);
+        setColorText(cs, new Color(80, 80, 80));
+        cs.newLineAtOffset(x, y);
+        cs.showText(label);
+        cs.endText();
+
+        cs.beginText();
+        cs.setFont(PDType1Font.HELVETICA_BOLD, 11);
+        setColorText(cs, new Color(30, 30, 30));
+        cs.newLineAtOffset(x + 130, y);
+        cs.showText(valor);
+        cs.endText();
+
+        return y - 16;
+    }
+
+    /** Dibuja una fila de la tabla de importes y retorna la siguiente Y. */
+    private float filaImporte(PDPageContentStream cs, float xLabel, float xValue,
+            float y, float rowH, String concepto, String importe, Color fondo) throws IOException {
+        setColor(cs, fondo);
+        cs.addRect(xLabel, y - 2, xValue + 80 - xLabel, rowH);
+        cs.fill();
+
+        cs.beginText();
+        cs.setFont(PDType1Font.HELVETICA, 10);
+        setColorText(cs, new Color(50, 50, 50));
+        cs.newLineAtOffset(xLabel + 8, y + 6);
+        cs.showText(concepto);
+        cs.endText();
+
+        cs.beginText();
+        cs.setFont(PDType1Font.HELVETICA, 10);
+        setColorText(cs, new Color(50, 50, 50));
+        cs.newLineAtOffset(xValue, y + 6);
+        cs.showText(importe);
+        cs.endText();
+
+        return y - rowH;
     }
 
     private JButton crearBoton(String texto, Color color, boolean deshabilitado) {
