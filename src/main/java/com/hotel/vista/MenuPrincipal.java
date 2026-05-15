@@ -227,6 +227,21 @@ public class MenuPrincipal extends JFrame {
         // Espacio flexible que empuja el texto de versión hacia abajo
         sidebar.add(Box.createVerticalGlue());
 
+        // Separador "MI CUENTA" — visible para todos los roles
+        JSeparator sepCuenta = new JSeparator();
+        sepCuenta.setForeground(new Color(50, 65, 150));
+        sepCuenta.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
+        sidebar.add(sepCuenta);
+
+        JLabel lblCuenta = new JLabel("  MI CUENTA");
+        lblCuenta.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        lblCuenta.setForeground(new Color(140, 160, 220));
+        lblCuenta.setBorder(new EmptyBorder(8, 18, 4, 10));
+        lblCuenta.setAlignmentX(Component.LEFT_ALIGNMENT);
+        sidebar.add(lblCuenta);
+
+        sidebar.add(crearBotonMenu("🔑", "Cambiar contraseña", "cambiar-password"));
+
         // Versión en la parte inferior
         JLabel lblVersion = new JLabel("  Hotel Sistema  v1.0");
         lblVersion.setFont(new Font("Segoe UI", Font.PLAIN, 10));
@@ -367,6 +382,12 @@ public class MenuPrincipal extends JFrame {
                     mostrarAccesoDenegado();
                 }
                 break;
+            case "cambiar-password":
+                // Abre diálogo modal sin alterar el panel de contenido actual
+                CambiarPasswordDialog dlg = new CambiarPasswordDialog(
+                    (Frame) SwingUtilities.getWindowAncestor(this), usuarioActual);
+                dlg.setVisible(true);
+                return;   // No revalidar ni repintar el contenido — no cambiamos de panel
         }
 
         panelContenido.revalidate();
