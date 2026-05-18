@@ -182,7 +182,12 @@ public class ReservacionesPanel extends JPanel {
         btnExcel.addActionListener(e ->
             ExcelExporter.exportar(tabla, "Reservaciones", ventanaPadre));
 
+        JButton btnDisponibilidad = crearBoton("🔍 Disponibilidad", new Color(0, 120, 160), false);
+        btnDisponibilidad.setToolTipText("Buscar habitaciones disponibles por rango de fechas");
+        btnDisponibilidad.addActionListener(e -> abrirDisponibilidad());
+
         panelBotones.add(btnActualizar);
+        panelBotones.add(btnDisponibilidad);
         panelBotones.add(btnExcel);
         panelBotones.add(btnNuevo);
         panelBotones.add(btnEditar);
@@ -435,6 +440,21 @@ public class ReservacionesPanel extends JPanel {
     // =========================================================
     // ACCIONES
     // =========================================================
+
+    /** Abre el buscador de disponibilidad; si el usuario confirma, abre el form de nueva reservación con la habitación prellenada. */
+    private void abrirDisponibilidad() {
+        DisponibilidadDialog dlg = new DisponibilidadDialog(ventanaPadre);
+        dlg.setVisible(true);
+        if (dlg.isConfirmado()) {
+            ReservacionFormDialog fd = new ReservacionFormDialog(ventanaPadre, null, usuarioActual);
+            fd.preseleccionarHabitacion(
+                dlg.getHabitacionSeleccionada(),
+                dlg.getFechaCheckin(),
+                dlg.getFechaCheckout());
+            fd.setVisible(true);
+            cargarReservaciones();
+        }
+    }
 
     private void abrirFormNuevo() {
         ReservacionFormDialog d = new ReservacionFormDialog(ventanaPadre, null, usuarioActual);

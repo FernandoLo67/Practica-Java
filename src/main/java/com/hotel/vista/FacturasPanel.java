@@ -42,6 +42,7 @@ public class FacturasPanel extends JPanel {
     private JButton           btnAnular;
     private JButton           btnDetalle;
     private JButton           btnImprimir;
+    private JButton           btnEmail;
 
     private final FacturaDAOImpl facturaDAO;
     private final Frame          ventanaPadre;
@@ -117,16 +118,20 @@ public class FacturasPanel extends JPanel {
         btnAnular  = crearBoton("✖ Anular", new Color(198, 40, 40), true);
 
         btnImprimir = crearBoton("🖨 Imprimir PDF", new Color(123, 31, 162), true);
+        btnEmail    = crearBoton("✉ Enviar Email",  new Color(2, 119, 189),   true);
+        btnEmail.setToolTipText("Generar el PDF y enviarlo al correo del cliente");
 
         btnRefresh .addActionListener(e -> cargarFacturas());
         btnDetalle .addActionListener(e -> verDetalle());
         btnPagar   .addActionListener(e -> cambiarEstado(Factura.ESTADO_PAGADA));
         btnAnular  .addActionListener(e -> cambiarEstado(Factura.ESTADO_ANULADA));
         btnImprimir.addActionListener(e -> imprimirFacturaPDF());
+        btnEmail   .addActionListener(e -> enviarFacturaPorEmail());
 
         botones.add(btnRefresh);
         botones.add(btnDetalle);
         botones.add(btnImprimir);
+        botones.add(btnEmail);
         botones.add(btnPagar);
         botones.add(btnAnular);
 
@@ -254,6 +259,7 @@ public class FacturasPanel extends JPanel {
             btnAnular.setEnabled(hay);
             btnDetalle.setEnabled(hay);
             btnImprimir.setEnabled(hay);
+            btnEmail.setEnabled(hay);
         });
 
         JScrollPane scroll = new JScrollPane(tabla);
@@ -297,6 +303,7 @@ public class FacturasPanel extends JPanel {
         btnAnular.setEnabled(false);
         btnDetalle.setEnabled(false);
         btnImprimir.setEnabled(false);
+        btnEmail.setEnabled(false);
     }
 
     private void verDetalle() {
@@ -426,6 +433,65 @@ public class FacturasPanel extends JPanel {
                         "No se pudo abrir el archivo automaticamente.\nUbicacion: " + destino.getAbsolutePath(),
                         "Aviso", JOptionPane.WARNING_MESSAGE);
                 }
+            }
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this,
+                "Error al generar el PDF:\n" + ex.getMessage(),
+                "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Genera la factura en PDF en un archivo temporal y la envía por email al cliente.
+     * Si el cliente no tiene correo registrado, avisa al usuario.
+     */
+    private void enviarFacturaPorEmail() {
+        int fila = tabla.getSelectedRow();
+        if (fila < 0) return;
+        int filaM = tabla.convertRowIndexToModel(fila);
+        int id    = (int) modeloTabla.getValueAt(filaM, 0);
+
+        Factura f = facturaDAO.buscarPorId(id);
+        if (f == null) {
+            JOptionPane.showMessageDialog(this, "No se pudo cargar la factura.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Verificar que el cliente tiene email
+        String emailCliente = (f.getReservacion() != null && f.getReservacion().getCliente() != null)
+            ? f.getReservacion().getCliente().getEmail() : null;
+        if (emailCliente == null || emailCliente.isBlank()) {
+            JOptionPane.showMessageDialog(this,
+                "El cliente no tiene correo electrónico registrado.\n" +
+                "Actualiza los datos del cliente antes de enviar la factura.",
+                "Sin correo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Confirmar con el usuario
+        int confirm = JOptionPane.showConfirmDialog(this,
+            "Se enviará la factura #" + f.getId() + " al correo:\n" +
+            emailCliente + "\n\n¿Continuar?",
+            "Enviar Factura por Email", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+        if (confirm != JOptionPane.YES_OPTION) return;
+
+        // Generar PDF temporal
+        try {
+            File tmp = File.createTempFile("Factura_" + f.getId() + "_", ".pdf");
+            tmp.deleteOnExit();
+            generarPDF(f, tmp);
+
+            boolean iniciado = com.hotel.util.EmailService.enviarFacturaPDF(f, tmp);
+            if (iniciado) {
+                lblEstado.setText("✉  Factura enviada a " + emailCliente);
+                JOptionPane.showMessageDialog(this,
+                    "Factura enviada al correo:\n" + emailCliente,
+                    "Email enviado", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this,
+                    "El servicio de email no está configurado.\n" +
+                    "Revisa src/main/resources/email.properties.",
+                    "Email no configurado", JOptionPane.WARNING_MESSAGE);
             }
         } catch (IOException ex) {
             JOptionPane.showMessageDialog(this,

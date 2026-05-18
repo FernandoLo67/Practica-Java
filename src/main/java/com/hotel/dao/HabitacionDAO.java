@@ -38,4 +38,7 @@ public interface HabitacionDAO {
 
     /** Cuenta habitaciones por estado */
     int contarPorEstado(String estado);
+
+    /** Retorna habitaciones libres (sin solapamiento) para el rango de fechas dado */
+    List<Habitacion> listarDisponiblesEnRango(java.sql.Date checkin, java.sql.Date checkout);
 }

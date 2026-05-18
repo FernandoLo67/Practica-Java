@@ -68,6 +68,19 @@ public class HabitacionDAOImpl implements HabitacionDAO {
     private static final String SQL_CONTAR_POR_ESTADO =
         "SELECT COUNT(*) FROM habitaciones WHERE estado = ?";
 
+    private static final String SQL_DISPONIBLES_EN_RANGO =
+        "SELECT h.id, h.numero, h.piso, h.estado, h.descripcion, h.precio_especial, " +
+        "       t.id AS tipo_id, t.nombre AS tipo_nombre, t.precio_base, t.capacidad " +
+        "FROM habitaciones h " +
+        "INNER JOIN tipo_habitacion t ON h.id_tipo = t.id " +
+        "WHERE h.estado != 'MANTENIMIENTO' " +
+        "AND h.id NOT IN (" +
+        "  SELECT id_habitacion FROM reservaciones " +
+        "  WHERE estado NOT IN ('CANCELADA','CHECKOUT') " +
+        "  AND NOT (fecha_checkout <= ? OR fecha_checkin >= ?)" +
+        ") " +
+        "ORDER BY h.numero ASC";
+
     // =========================================================
     // IMPLEMENTACIÓN
     // =========================================================
@@ -262,6 +275,22 @@ public class HabitacionDAOImpl implements HabitacionDAO {
             log.error("Error consultando precio: " + e.getMessage());
         }
         return 0;
+    }
+
+    @Override
+    public List<Habitacion> listarDisponiblesEnRango(java.sql.Date checkin, java.sql.Date checkout) {
+        List<Habitacion> lista = new ArrayList<>();
+        try (Connection conn = ConexionDB.getConexion();
+             PreparedStatement ps = conn.prepareStatement(SQL_DISPONIBLES_EN_RANGO)) {
+            ps.setDate(1, checkin);
+            ps.setDate(2, checkout);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) lista.add(mapear(rs));
+            }
+        } catch (SQLException e) {
+            log.error("Error en listarDisponiblesEnRango(): " + e.getMessage());
+        }
+        return lista;
     }
 
     // =========================================================

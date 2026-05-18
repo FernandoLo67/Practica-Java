@@ -77,6 +77,12 @@ public class ReservacionDAOImpl implements ReservacionDAO {
     private static final String SQL_CONTAR_ESTADO =
         "SELECT COUNT(*) FROM reservaciones WHERE estado = ?";
 
+    private static final String SQL_LISTAR_EN_RANGO =
+        SQL_BASE +
+        "WHERE r.estado NOT IN ('CANCELADA') " +
+        "AND NOT (r.fecha_checkout <= ? OR r.fecha_checkin >= ?) " +
+        "ORDER BY r.fecha_checkin ASC";
+
     // =========================================================
     // IMPLEMENTACIÓN
     // =========================================================
@@ -242,6 +248,22 @@ public class ReservacionDAOImpl implements ReservacionDAO {
             log.error("Error en contarPorEstado(): " + e.getMessage());
         }
         return 0;
+    }
+
+    @Override
+    public List<Reservacion> listarEnRango(java.sql.Date desde, java.sql.Date hasta) {
+        List<Reservacion> lista = new ArrayList<>();
+        try (Connection conn = ConexionDB.getConexion();
+             PreparedStatement ps = conn.prepareStatement(SQL_LISTAR_EN_RANGO)) {
+            ps.setDate(1, desde);
+            ps.setDate(2, hasta);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) lista.add(mapear(rs));
+            }
+        } catch (SQLException e) {
+            log.error("Error en listarEnRango(): " + e.getMessage());
+        }
+        return lista;
     }
 
     // =========================================================

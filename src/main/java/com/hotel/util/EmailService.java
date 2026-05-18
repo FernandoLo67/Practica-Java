@@ -1,13 +1,17 @@
 package com.hotel.util;
 
+import com.hotel.modelo.Factura;
 import com.hotel.modelo.Reservacion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
@@ -125,6 +129,36 @@ public final class EmailService {
         }, "EmailSender").start();
     }
 
+    /**
+     * Envía la factura en PDF como adjunto al correo del cliente.
+     * El envío es asíncrono — no bloquea la UI.
+     *
+     * @param factura  Factura a enviar (con reservación y cliente cargados)
+     * @param pdfFile  Archivo PDF ya generado
+     * @return true si el envío se inició (el correo puede tardar segundos)
+     */
+    public static boolean enviarFacturaPDF(Factura factura, File pdfFile) {
+        if (!habilitado) return false;
+        Reservacion res = factura.getReservacion();
+        if (res == null || res.getCliente() == null) return false;
+        String email = res.getCliente().getEmail();
+        if (email == null || email.isBlank()) return false;
+
+        new Thread(() -> {
+            try {
+                String asunto = "🧾 Factura #" + factura.getId() + " — Hotel Vista";
+                String html   = construirHtmlFactura(factura);
+
+                enviarConAdjunto(email, asunto, html, pdfFile);
+                log.info("Factura PDF enviada a {} (Factura #{})", email, factura.getId());
+            } catch (Exception e) {
+                log.error("Error enviando factura PDF a {}", email, e);
+            }
+        }, "EmailFactura").start();
+
+        return true;
+    }
+
     // =========================================================
     // ENVÍO INTERNO
     // =========================================================
@@ -144,6 +178,43 @@ public final class EmailService {
         msg.setRecipients(Message.RecipientType.TO, InternetAddress.parse(destinatario));
         msg.setSubject(asunto, "UTF-8");
         msg.setContent(htmlBody, "text/html; charset=UTF-8");
+
+        Transport.send(msg);
+    }
+
+    private static void enviarConAdjunto(String destinatario, String asunto,
+                                          String htmlBody, File adjunto)
+            throws MessagingException, java.io.UnsupportedEncodingException {
+
+        Session session = Session.getInstance(SMTP_PROPS, new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(USUARIO, PASSWORD);
+            }
+        });
+
+        MimeMessage msg = new MimeMessage(session);
+        msg.setFrom(new InternetAddress(FROM_EMAIL, FROM_NOMBRE));
+        msg.setRecipients(Message.RecipientType.TO, InternetAddress.parse(destinatario));
+        msg.setSubject(asunto, "UTF-8");
+
+        // Parte HTML
+        MimeBodyPart htmlPart = new MimeBodyPart();
+        htmlPart.setContent(htmlBody, "text/html; charset=UTF-8");
+
+        // Parte adjunto PDF
+        MimeBodyPart pdfPart = new MimeBodyPart();
+        try {
+            pdfPart.attachFile(adjunto);
+            pdfPart.setFileName("Factura_" + adjunto.getName());
+        } catch (IOException e) {
+            throw new MessagingException("No se pudo adjuntar el PDF: " + e.getMessage(), e);
+        }
+
+        MimeMultipart multipart = new MimeMultipart();
+        multipart.addBodyPart(htmlPart);
+        multipart.addBodyPart(pdfPart);
+        msg.setContent(multipart);
 
         Transport.send(msg);
     }
@@ -218,5 +289,72 @@ public final class EmailService {
                "<td style='padding:10px 12px;color:#555;width:45%;'>" + campo + "</td>" +
                "<td style='padding:10px 12px;color:#222;font-weight:600;'>" + valor + "</td>" +
                "</tr>";
+    }
+
+    // =========================================================
+    // PLANTILLA HTML — FACTURA
+    // =========================================================
+
+    private static String construirHtmlFactura(Factura f) {
+        Reservacion res = f.getReservacion();
+        String nombre  = res != null && res.getCliente() != null
+            ? res.getCliente().getNombreCompleto() : "Cliente";
+        String hab     = res != null && res.getHabitacion() != null
+            ? "N° " + res.getHabitacion().getNumero() : "—";
+        String tipo    = (res != null && res.getHabitacion() != null
+                         && res.getHabitacion().getTipo() != null)
+            ? res.getHabitacion().getTipo().getNombre() : "—";
+        String ci  = res != null && res.getFechaCheckin()  != null ? FMT.format(res.getFechaCheckin())  : "—";
+        String co  = res != null && res.getFechaCheckout() != null ? FMT.format(res.getFechaCheckout()) : "—";
+        long noches    = res != null ? res.getNoches() : 0;
+        String emision = f.getFechaEmision() != null ? FMT.format(f.getFechaEmision()) : FMT.format(new java.util.Date());
+
+        return "<!DOCTYPE html>" +
+            "<html><head><meta charset='UTF-8'></head><body style='" +
+            "font-family:Segoe UI,Arial,sans-serif;background:#f0f4ff;margin:0;padding:20px;'>" +
+
+            "<div style='max-width:580px;margin:0 auto;background:#fff;border-radius:8px;" +
+            "box-shadow:0 2px 8px rgba(0,0,0,0.12);overflow:hidden;'>" +
+
+            // Header
+            "<div style='background:#1a237e;padding:28px 32px;'>" +
+            "<h1 style='color:#fff;margin:0;font-size:22px;'>🏨 Hotel Vista</h1>" +
+            "<p style='color:#c5caf0;margin:4px 0 0;font-size:13px;'>Factura #" + f.getId() + "</p>" +
+            "</div>" +
+
+            // Cuerpo
+            "<div style='padding:28px 32px 0;'>" +
+            "<p style='font-size:15px;color:#333;'>Estimado/a <strong>" + nombre + "</strong>,</p>" +
+            "<p style='font-size:14px;color:#555;'>Adjunto encontrará su factura en formato PDF. " +
+            "A continuación un resumen de la estancia:</p>" +
+            "</div>" +
+
+            "<div style='padding:0 32px 24px;'>" +
+            "<table style='width:100%;border-collapse:collapse;font-size:14px;'>" +
+            fila("📅 Fecha de emisión",  emision) +
+            fila("🛏 Habitación",        hab + " — " + tipo) +
+            fila("📅 Check-In",          ci) +
+            fila("📅 Check-Out",         co) +
+            fila("🌙 Noches",            String.valueOf(noches)) +
+            fila("💳 Método de pago",    f.getMetodoPago() != null ? f.getMetodoPago() : "—") +
+            fila("💰 Subtotal",          String.format("Q %.2f", f.getSubtotal())) +
+            fila("🏦 Impuesto (IVA)",    String.format("Q %.2f", f.getImpuesto())) +
+            "<tr style='background:#1a237e;'>" +
+            "<td style='padding:12px;color:#fff;font-weight:700;'>💎 TOTAL</td>" +
+            "<td style='padding:12px;color:#fff;font-weight:700;font-size:16px;'>" +
+            String.format("Q %.2f", f.getTotal()) + "</td></tr>" +
+            "</table></div>" +
+
+            "<div style='background:#f8f9ff;padding:16px 32px;border-top:1px solid #e8eaf6;'>" +
+            "<p style='font-size:12px;color:#888;margin:0;'>" +
+            "El PDF completo de su factura está adjunto a este correo. " +
+            "Gracias por hospedarse con nosotros.</p></div>" +
+
+            "<div style='padding:14px 32px;background:#1a237e;'>" +
+            "<p style='color:#c5caf0;font-size:11px;margin:0;text-align:center;'>" +
+            "Este correo fue generado automáticamente — por favor no responda a esta dirección." +
+            "</p></div>" +
+
+            "</div></body></html>";
     }
 }

@@ -323,6 +323,7 @@ public class MenuPrincipal extends JFrame {
         sidebar.add(crearBotonMenu("🛏", "Habitaciones",        "habitaciones"));
         sidebar.add(crearBotonMenu("🏷", "Tipos de Habitación", "tipos"));
         sidebar.add(crearBotonMenu("📅", "Reservaciones",       "reservaciones"));
+        sidebar.add(crearBotonMenu("🗓", "Calendario",          "calendario"));
         sidebar.add(crearBotonMenu("✅", "Check-In / Check-Out","checkin"));
         sidebar.add(crearBotonMenu("🧾", "Facturación",         "facturacion"));
         sidebar.add(crearBotonMenu("📊", "Reportes",            "reportes"));
@@ -480,6 +481,11 @@ public class MenuPrincipal extends JFrame {
                 FacturasPanel facturasPanel = new FacturasPanel(
                     (Frame) SwingUtilities.getWindowAncestor(this));
                 panelContenido.add(facturasPanel, BorderLayout.CENTER);
+                break;
+            case "calendario":
+                // Módulo: Calendario de ocupación mensual (Gantt)
+                CalendarioPanel calendarioPanel = new CalendarioPanel();
+                panelContenido.add(calendarioPanel, BorderLayout.CENTER);
                 break;
             case "reportes":
                 // Módulo 7: Reportes

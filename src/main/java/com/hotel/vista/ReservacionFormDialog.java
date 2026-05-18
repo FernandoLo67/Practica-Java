@@ -461,4 +461,31 @@ public class ReservacionFormDialog extends JDialog {
     }
 
     public boolean isGuardadoExitoso() { return guardadoExitoso; }
+
+    /**
+     * Preselecciona la habitación y las fechas en el formulario.
+     * Llamar ANTES de setVisible(true).
+     *
+     * @param hab      Habitación a preseleccionar
+     * @param checkin  Fecha de check-in
+     * @param checkout Fecha de check-out
+     */
+    public void preseleccionarHabitacion(com.hotel.modelo.Habitacion hab,
+                                          java.sql.Date checkin,
+                                          java.sql.Date checkout) {
+        if (hab == null) return;
+        // Seleccionar habitación en el combo
+        for (int i = 0; i < cmbHabitacion.getItemCount(); i++) {
+            if (cmbHabitacion.getItemAt(i).getId() == hab.getId()) {
+                cmbHabitacion.setSelectedIndex(i);
+                break;
+            }
+        }
+        // Rellenar fechas
+        if (checkin  != null) txtCheckin.setText(
+            checkin.toLocalDate().format(FMT));
+        if (checkout != null) txtCheckout.setText(
+            checkout.toLocalDate().format(FMT));
+        actualizarInfoPrecio();
+    }
 }

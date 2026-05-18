@@ -41,4 +41,7 @@ public interface ReservacionDAO {
 
     /** Cuenta reservaciones por estado */
     int contarPorEstado(String estado);
+
+    /** Retorna reservaciones cuyo período se solapa con el rango dado (excluye CANCELADA) */
+    List<Reservacion> listarEnRango(Date desde, Date hasta);
 }
