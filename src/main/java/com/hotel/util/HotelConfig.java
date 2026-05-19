@@ -36,6 +36,7 @@ public final class HotelConfig {
     private static final String DEF_EMAIL     = "";
     private static final String DEF_NIT       = "";
     private static final String DEF_WEB       = "";
+    private static final double DEF_IVA       = 0.18;
 
     private static Properties props;
 
@@ -54,6 +55,15 @@ public final class HotelConfig {
     public static String getEmail()     { return get("hotel.email",     DEF_EMAIL);     }
     public static String getNit()       { return get("hotel.nit",       DEF_NIT);       }
     public static String getWeb()       { return get("hotel.web",       DEF_WEB);       }
+
+    /**
+     * Tasa IVA configurada (por defecto 0.18 = 18%).
+     * Editable desde DatosHotelPanel → campo "IVA (%)".
+     */
+    public static double getIva() {
+        try { return Double.parseDouble(get("hotel.iva", String.valueOf(DEF_IVA))); }
+        catch (NumberFormatException e) { return DEF_IVA; }
+    }
 
     private static String get(String clave, String defecto) {
         return props.getProperty(clave, defecto).trim();

@@ -37,10 +37,11 @@ hotel_sistema
 └── bitacora          ← Registro de auditoría de todas las acciones
 ```
 
-> Si ya tenías la BD creada sin las columnas `activo` o `precio_especial`, ejecuta también:
+> Si ya tenías la BD creada sin algunas columnas, ejecuta también:
 > ```sql
 > ALTER TABLE clientes ADD COLUMN activo BOOLEAN NOT NULL DEFAULT TRUE;
 > ALTER TABLE habitaciones ADD COLUMN precio_especial DECIMAL(10,2) DEFAULT NULL;
+> ALTER TABLE habitaciones ADD COLUMN imagen_url VARCHAR(500) DEFAULT NULL;
 > ```
 
 ---
@@ -117,7 +118,7 @@ mail.from.email=TU_CORREO@gmail.com
 | 6 | **Reservaciones** | Formulario con máscara de fecha, cálculo automático de noches y total, verificación de disponibilidad, email de confirmación al crear |
 | 7 | **Check-In / Check-Out** | Flujo completo, genera factura automáticamente, bitácora de eventos |
 | 8 | **Facturación** | Listado de facturas, cambio de estado, detalle completo |
-| 9 | **Reportes** | KPIs + reservaciones + top clientes exportados a PDF con PDFBox |
+| 9 | **Reportes** | KPIs + gráfica de ingresos mensuales (líneas) + ocupación por tipo + top clientes, exportación a PDF con PDFBox |
 | 10 | **Usuarios** | CRUD de cuentas del sistema (ADMIN only) |
 | 11 | **Bitácora** | Registro de todas las acciones con filtro por texto y módulo (ADMIN only) |
 
@@ -236,6 +237,23 @@ Ejecutar: `mvn test`
 |---------|-------------|
 | `sql/hotel_sistema.sql` | Crea toda la BD: tablas, índices, vistas, datos iniciales |
 | `sql/insertar_clientes.sql` | 26 clientes de prueba (guatemaltecos, internacionales, centroamericanos) |
+
+---
+
+## ✨ Mejoras recientes (v1.1)
+
+| Feature | Descripción |
+|---------|-------------|
+| IVA configurable | Editable desde Administración → Datos del Hotel. Aplica a todas las facturas nuevas vía `HotelConfig.getIva()`. |
+| Imagen de habitación | Campo imagen local en formulario de edición de habitación. Ruta guardada en `habitaciones.imagen_url`. |
+| Recordatorio pre-checkin | Email automático al cliente 1 día antes del check-in. Se ejecuta al iniciar sesión y cada 12 horas. |
+| Historial del cliente | Diálogo con todas las reservaciones y facturas del cliente seleccionado. |
+| Gráfica de ingresos mensuales | Línea chart con los últimos 12 meses de facturas PAGADAS en ReportesPanel. |
+| Validación teléfono/email | ClienteFormDialog valida formato antes de guardar. |
+| Backup BD | Un clic desde Datos del Hotel genera `.sql` completo vía mysqldump. |
+| Logging a archivo | Todos los eventos se escriben en `hotel.log` junto al JAR. |
+| Auto-checkout | Timer cada hora: reservaciones CHECKIN vencidas → CHECKOUT + habitación → DISPONIBLE. |
+| Tests integración DAO | JUnit 5 con fixtures de BD real para `ClienteDAO`, `HabitacionDAO`, `ReservacionDAO`. |
 
 ---
 

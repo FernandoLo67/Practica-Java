@@ -26,7 +26,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 
 /**
  * Panel de Reportes — resumen ejecutivo del sistema.
@@ -216,6 +218,8 @@ public class ReportesPanel extends JPanel {
         contenido.add(Box.createVerticalStrut(20));
         contenido.add(crearFilaGraficos());
         contenido.add(Box.createVerticalStrut(20));
+        contenido.add(crearGraficoIngresosMensuales());
+        contenido.add(Box.createVerticalStrut(20));
         contenido.add(crearTopClientes());
 
         JScrollPane scroll = new JScrollPane(contenido);
@@ -376,6 +380,53 @@ public class ReportesPanel extends JPanel {
         }
 
         panel.add(lista, BorderLayout.CENTER);
+        return panel;
+    }
+
+    // =========================================================
+    // GRÁFICO INGRESOS MENSUALES (últimos 12 meses)
+    // =========================================================
+
+    private JPanel crearGraficoIngresosMensuales() {
+        JPanel panel = crearPanelCard("📈  Ingresos por Mes — Últimos 12 meses (facturas PAGADAS)");
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 220));
+
+        List<String> meses   = new ArrayList<>();
+        List<Double> valores = new ArrayList<>();
+
+        try (Connection conn = ConexionDB.getConexion();
+             PreparedStatement ps = conn.prepareStatement(
+                "SELECT DATE_FORMAT(fecha_emision, '%b %Y') AS mes_label, " +
+                "       DATE_FORMAT(fecha_emision, '%Y-%m') AS mes_sort, " +
+                "       COALESCE(SUM(total), 0)             AS ingresos " +
+                "FROM facturas " +
+                "WHERE estado = 'PAGADA' " +
+                "  AND fecha_emision >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH) " +
+                "GROUP BY mes_sort, mes_label " +
+                "ORDER BY mes_sort ASC");
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                meses  .add(rs.getString("mes_label"));
+                valores.add(rs.getDouble("ingresos"));
+            }
+        } catch (Exception e) {
+            panel.add(new JLabel("  Error al cargar ingresos: " + e.getMessage()), BorderLayout.CENTER);
+            return panel;
+        }
+
+        if (valores.isEmpty()) {
+            JLabel vacio = new JLabel("Sin datos de facturas pagadas en los últimos 12 meses",
+                SwingConstants.CENTER);
+            vacio.setForeground(new Color(150, 160, 190));
+            vacio.setFont(new Font("Segoe UI", Font.ITALIC, 13));
+            panel.add(vacio, BorderLayout.CENTER);
+            return panel;
+        }
+
+        double[] arr = valores.stream().mapToDouble(Double::doubleValue).toArray();
+        String[] etiq = meses.toArray(new String[0]);
+        panel.add(new GraficoLineas(arr, etiq, COLOR_PRIMARIO), BorderLayout.CENTER);
         return panel;
     }
 
@@ -774,6 +825,104 @@ public class ReportesPanel extends JPanel {
                             : new Color(46, 125, 50);
                 g2.setColor(color);
                 g2.fillRoundRect(0, 2, (int) (w * porcentaje / 100.0), h - 4, h - 4, h - 4);
+            }
+        }
+    }
+
+    // =========================================================
+    // COMPONENTE: Gráfico de Líneas (ingresos mensuales)
+    // =========================================================
+
+    static class GraficoLineas extends JPanel {
+        private final double[] valores;
+        private final String[] etiquetas;
+        private final Color    lineaColor;
+
+        GraficoLineas(double[] valores, String[] etiquetas, Color lineaColor) {
+            this.valores    = valores;
+            this.etiquetas  = etiquetas;
+            this.lineaColor = lineaColor;
+            setOpaque(false);
+            setPreferredSize(new Dimension(0, 170));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            if (valores.length == 0) return;
+
+            Graphics2D g2 = (Graphics2D) g;
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            int w = getWidth(), h = getHeight();
+            int mL = 55, mR = 16, mT = 16, mB = 36;
+            int aW = w - mL - mR;
+            int aH = h - mT - mB;
+            int n  = valores.length;
+
+            double max = 1;
+            for (double v : valores) if (v > max) max = v;
+
+            // Grid lines
+            g2.setColor(new Color(220, 225, 240));
+            g2.setStroke(new BasicStroke(1f));
+            int gridLines = 4;
+            for (int i = 0; i <= gridLines; i++) {
+                int y = mT + aH - (int)(aH * i / (double) gridLines);
+                g2.drawLine(mL, y, mL + aW, y);
+                // Y label
+                String label = String.format("Q %.0f", max * i / gridLines);
+                g2.setFont(new Font("Segoe UI", Font.PLAIN, 9));
+                g2.setColor(new Color(130, 140, 170));
+                g2.drawString(label, 2, y + 4);
+                g2.setColor(new Color(220, 225, 240));
+            }
+
+            // Area fill (gradient under line)
+            int[] xPts = new int[n + 2];
+            int[] yPts = new int[n + 2];
+            for (int i = 0; i < n; i++) {
+                xPts[i]   = mL + (n == 1 ? aW / 2 : i * aW / (n - 1));
+                yPts[i]   = mT + aH - (int)(aH * valores[i] / max);
+            }
+            xPts[n]   = xPts[n - 1]; yPts[n] = mT + aH;
+            xPts[n+1] = xPts[0];     yPts[n+1] = mT + aH;
+            Color fillColor = new Color(lineaColor.getRed(), lineaColor.getGreen(),
+                                        lineaColor.getBlue(), 35);
+            g2.setColor(fillColor);
+            g2.fillPolygon(xPts, yPts, n + 2);
+
+            // Line
+            g2.setColor(lineaColor);
+            g2.setStroke(new BasicStroke(2.2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            for (int i = 0; i < n - 1; i++) {
+                g2.drawLine(xPts[i], yPts[i], xPts[i+1], yPts[i+1]);
+            }
+
+            // Dots + value labels + x-labels
+            for (int i = 0; i < n; i++) {
+                int px = xPts[i], py = yPts[i];
+
+                // Dot
+                g2.setColor(Color.WHITE);
+                g2.fillOval(px - 4, py - 4, 8, 8);
+                g2.setColor(lineaColor);
+                g2.setStroke(new BasicStroke(2f));
+                g2.drawOval(px - 4, py - 4, 8, 8);
+
+                // Value above dot
+                String val = String.format("Q %.0f", valores[i]);
+                g2.setFont(new Font("Segoe UI", Font.BOLD, 9));
+                g2.setColor(new Color(50, 60, 90));
+                int sw = g2.getFontMetrics().stringWidth(val);
+                g2.drawString(val, px - sw / 2, py - 8);
+
+                // X label below
+                String etiq = etiquetas[i];
+                g2.setFont(new Font("Segoe UI", Font.PLAIN, 8));
+                g2.setColor(new Color(100, 110, 140));
+                int ew = g2.getFontMetrics().stringWidth(etiq);
+                g2.drawString(etiq, px - ew / 2, h - mB + 14);
             }
         }
     }

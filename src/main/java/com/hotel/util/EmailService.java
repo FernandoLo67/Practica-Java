@@ -159,6 +159,71 @@ public final class EmailService {
         return true;
     }
 
+    /**
+     * Envía un recordatorio de check-in para mañana al cliente.
+     * Asíncrono — no bloquea la UI.
+     *
+     * @param res Reservación con checkin = mañana (con cliente cargado)
+     */
+    public static void enviarRecordatorioPrecheckin(Reservacion res) {
+        if (!habilitado) return;
+        if (res.getCliente() == null || res.getCliente().getEmail() == null) return;
+
+        new Thread(() -> {
+            try {
+                String destinatario = res.getCliente().getEmail();
+                String hotelNombre  = HotelConfig.getNombre();
+                String asunto       = "🔔 Recordatorio: su check-in es mañana — " + hotelNombre;
+                String cuerpo       = construirHtmlRecordatorio(res);
+                enviar(destinatario, asunto, cuerpo);
+                log.info("Recordatorio pre-checkin enviado a {} (res #{})", destinatario, res.getId());
+            } catch (Exception e) {
+                log.error("Error enviando recordatorio pre-checkin (res #{})", res.getId(), e);
+            }
+        }, "EmailRecordatorio-" + res.getId()).start();
+    }
+
+    private static String construirHtmlRecordatorio(Reservacion res) {
+        String nombre   = res.getCliente().getNombreCompleto();
+        String numHab   = res.getHabitacion() != null ? res.getHabitacion().getNumero() : "—";
+        String tipoHab  = (res.getHabitacion() != null && res.getHabitacion().getTipo() != null)
+                          ? res.getHabitacion().getTipo().getNombre() : "—";
+        String checkin  = res.getFechaCheckin()  != null ? FMT.format(res.getFechaCheckin())  : "—";
+        String checkout = res.getFechaCheckout() != null ? FMT.format(res.getFechaCheckout()) : "—";
+        String hotel    = HotelConfig.getNombre();
+        String dir      = HotelConfig.getDireccion();
+        String tel      = HotelConfig.getTelefono();
+
+        return "<!DOCTYPE html><html><head><meta charset='UTF-8'></head><body style='" +
+            "font-family:Segoe UI,Arial,sans-serif;background:#f0f4ff;margin:0;padding:20px;'>" +
+            "<div style='max-width:560px;margin:0 auto;background:#fff;border-radius:8px;" +
+            "box-shadow:0 2px 8px rgba(0,0,0,0.12);overflow:hidden;'>" +
+            "<div style='background:#e65100;padding:28px 32px;'>" +
+            "<h1 style='color:#fff;margin:0;font-size:20px;'>🔔 " + hotel + "</h1>" +
+            "<p style='color:#ffe0b2;margin:4px 0 0;font-size:13px;'>Recordatorio de check-in</p>" +
+            "</div>" +
+            "<div style='padding:28px 32px;'>" +
+            "<p style='font-size:15px;color:#333;'>Estimado/a <strong>" + nombre + "</strong>,</p>" +
+            "<p style='font-size:14px;color:#555;'>Le recordamos que <strong>mañana es su fecha de check-in</strong>. " +
+            "Estamos preparados para recibirle.</p>" +
+            "<table style='width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;'>" +
+            "<tr style='background:#fff3e0;'><td style='padding:8px 12px;color:#777;'>Habitación</td>" +
+            "<td style='padding:8px 12px;font-weight:bold;color:#333;'>" + numHab + " — " + tipoHab + "</td></tr>" +
+            "<tr><td style='padding:8px 12px;color:#777;'>Check-in</td>" +
+            "<td style='padding:8px 12px;font-weight:bold;color:#e65100;'>" + checkin + "</td></tr>" +
+            "<tr style='background:#f9f9f9;'><td style='padding:8px 12px;color:#777;'>Check-out</td>" +
+            "<td style='padding:8px 12px;color:#333;'>" + checkout + "</td></tr>" +
+            "</table>" +
+            (dir.isBlank() ? "" : "<p style='font-size:13px;color:#555;'>📍 " + dir + "</p>") +
+            (tel.isBlank() ? "" : "<p style='font-size:13px;color:#555;'>📞 " + tel + "</p>") +
+            "<p style='font-size:13px;color:#888;margin-top:20px;'>Si tiene alguna pregunta, " +
+            "no dude en contactarnos.</p>" +
+            "</div>" +
+            "<div style='background:#f5f5f5;padding:12px 32px;font-size:11px;color:#aaa;'>" +
+            "Este correo fue generado automáticamente por " + hotel + " · Sistema de Gestión Hotelera" +
+            "</div></div></body></html>";
+    }
+
     // =========================================================
     // ENVÍO INTERNO
     // =========================================================

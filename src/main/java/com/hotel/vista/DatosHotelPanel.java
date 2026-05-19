@@ -1,6 +1,7 @@
 package com.hotel.vista;
 
 import com.hotel.modelo.Bitacora;
+import com.hotel.util.BackupService;
 import com.hotel.util.BitacoraService;
 import com.hotel.util.HotelConfig;
 import com.hotel.util.Tema;
@@ -11,6 +12,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
+import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
 
@@ -40,6 +42,7 @@ public class DatosHotelPanel extends JPanel {
     private JTextField txtEmail;
     private JTextField txtNit;
     private JTextField txtWeb;
+    private JTextField txtIva;
 
     // Vista previa
     private JLabel lblPrevNombre;
@@ -172,8 +175,15 @@ public class DatosHotelPanel extends JPanel {
         g.gridy = 15; p.add(etiqueta("Sitio web"), g);
         g.gridy = 16; txtWeb = campo(); p.add(txtWeb, g);
 
+        g.gridy = 17; g.insets = new Insets(12, 0, 4, 0);
+        p.add(seccion("Configuración fiscal"), g);
+        g.insets = new Insets(4, 0, 4, 0);
+
+        g.gridy = 18; p.add(etiqueta("IVA (%) — ej: 0.18 para 18%"), g);
+        g.gridy = 19; txtIva = campo(); p.add(txtIva, g);
+
         // Botones
-        g.gridy = 17; g.insets = new Insets(20, 0, 0, 0);
+        g.gridy = 20; g.insets = new Insets(20, 0, 0, 0);
         p.add(crearBotones(), g);
 
         // Listener para actualizar vista previa en tiempo real
@@ -189,6 +199,7 @@ public class DatosHotelPanel extends JPanel {
         txtEmail.getDocument().addDocumentListener(previewListener);
         txtNit.getDocument().addDocumentListener(previewListener);
         txtWeb.getDocument().addDocumentListener(previewListener);
+        txtIva.getDocument().addDocumentListener(previewListener);
 
         return p;
     }
@@ -223,10 +234,88 @@ public class DatosHotelPanel extends JPanel {
             mensaje("Datos recargados desde el archivo.", Tema.COLOR_INFO);
         });
 
+        // Botón Backup
+        JButton btnBackup = new JButton("🗄  Backup BD");
+        btnBackup.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnBackup.setForeground(Color.WHITE);
+        btnBackup.setBackground(new Color(38, 50, 56));   // gris oscuro
+        btnBackup.setOpaque(true);
+        btnBackup.setBorderPainted(false);
+        btnBackup.setFocusPainted(false);
+        btnBackup.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnBackup.setBorder(new EmptyBorder(9, 16, 9, 16));
+        btnBackup.setToolTipText("Genera un backup completo de la base de datos (.sql)");
+        btnBackup.addActionListener(e -> ejecutarBackup());
+
         p.add(btnGuardar);
         p.add(Box.createHorizontalStrut(10));
         p.add(btnRestaurar);
+        p.add(Box.createHorizontalStrut(10));
+        p.add(btnBackup);
         return p;
+    }
+
+    /**
+     * Abre un JFileChooser para elegir la carpeta destino,
+     * luego ejecuta el backup en un SwingWorker (no bloquea UI).
+     */
+    private void ejecutarBackup() {
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("Selecciona la carpeta para guardar el backup");
+        fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        fc.setAcceptAllFileFilterUsed(false);
+
+        // Sugerir directorio del usuario
+        fc.setCurrentDirectory(new File(System.getProperty("user.home")));
+
+        if (fc.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        File destDir = fc.getSelectedFile();
+
+        mensaje("⏳  Generando backup...", new Color(80, 100, 180));
+        setEnabled(false);  // deshabilitar panel durante proceso
+
+        new SwingWorker<BackupService.BackupResult, Void>() {
+            @Override
+            protected BackupService.BackupResult doInBackground() {
+                return BackupService.generarBackup(destDir);
+            }
+
+            @Override
+            protected void done() {
+                setEnabled(true);
+                try {
+                    BackupService.BackupResult r = get();
+                    if (r.exitoso) {
+                        mensaje("✅  Backup guardado: " + r.archivo.getName() +
+                            "  (" + r.tamanioFormateado() + ")", new Color(39, 120, 60));
+
+                        BitacoraService.log(
+                            Bitacora.ACCION_CREAR,
+                            "SISTEMA",
+                            "Backup generado: " + r.archivo.getName() +
+                            " (" + r.tamanioFormateado() + ")");
+
+                        int abrir = JOptionPane.showConfirmDialog(
+                            DatosHotelPanel.this,
+                            "Backup generado exitosamente:\n" + r.archivo.getAbsolutePath() +
+                            "\n\n¿Abrir la carpeta?",
+                            "Backup completado", JOptionPane.YES_NO_OPTION,
+                            JOptionPane.INFORMATION_MESSAGE);
+
+                        if (abrir == JOptionPane.YES_OPTION) {
+                            try { java.awt.Desktop.getDesktop().open(destDir); }
+                            catch (IOException ex) { /* carpeta no abre — no crítico */ }
+                        }
+                    } else {
+                        mensaje("✗  " + r.error.split("\n")[0], new Color(180, 40, 40));
+                        JOptionPane.showMessageDialog(DatosHotelPanel.this,
+                            r.error, "Error en backup", JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (Exception ex) {
+                    mensaje("✗  Error inesperado en backup.", new Color(180, 40, 40));
+                }
+            }
+        }.execute();
     }
 
     // =========================================================
@@ -329,6 +418,7 @@ public class DatosHotelPanel extends JPanel {
         txtEmail.setText(HotelConfig.getEmail());
         txtNit.setText(HotelConfig.getNit());
         txtWeb.setText(HotelConfig.getWeb());
+        txtIva.setText(String.valueOf(HotelConfig.getIva()));
         actualizarPrevia();
     }
 
@@ -360,6 +450,18 @@ public class DatosHotelPanel extends JPanel {
         p.setProperty("hotel.email",     txtEmail.getText().trim());
         p.setProperty("hotel.nit",       txtNit.getText().trim());
         p.setProperty("hotel.web",       txtWeb.getText().trim());
+
+        // Validate + save IVA
+        String ivaStr = txtIva.getText().trim();
+        try {
+            double iva = Double.parseDouble(ivaStr);
+            if (iva < 0 || iva > 1) throw new NumberFormatException("out of range");
+            p.setProperty("hotel.iva", String.valueOf(iva));
+        } catch (NumberFormatException ex) {
+            mensaje("IVA inválido. Use valor entre 0 y 1 (ej: 0.18).", Tema.COLOR_ERROR);
+            txtIva.requestFocus();
+            return;
+        }
 
         try {
             HotelConfig.guardar(p);

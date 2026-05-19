@@ -1,7 +1,11 @@
 package com.hotel.vista;
 
+import com.hotel.modelo.Bitacora;
+import com.hotel.modelo.Reservacion;
 import com.hotel.modelo.Usuario;
+import com.hotel.util.BitacoraService;
 import com.hotel.util.ConexionDB;
+import com.hotel.util.EmailService;
 import com.hotel.util.HotelConfig;
 import com.hotel.util.Tema;
 
@@ -66,6 +70,8 @@ public class MenuPrincipal extends JFrame {
     private static final Preferences PREFS = Preferences.userNodeForPackage(MenuPrincipal.class);
     private JLabel lblCampana;
     private Timer  timerCampana;
+    private Timer  timerAutoCheckout;
+    private Timer  timerRecordatorio;
 
     // =========================================================
     // CONSTRUCTOR
@@ -746,9 +752,96 @@ public class MenuPrincipal extends JFrame {
      * hay pendientes hoy y actualiza el icono de la campana.
      */
     private void iniciarCampana() {
-        actualizarCampana(); // primera vez inmediata
+        // Auto-checkout: ejecutar al inicio y cada hora
+        ejecutarAutoCheckout();
+        timerAutoCheckout = new Timer(60 * 60_000, e -> ejecutarAutoCheckout());
+        timerAutoCheckout.start();
+
+        // Campana check-ins: cada 60 seg
+        actualizarCampana();
         timerCampana = new Timer(60_000, e -> actualizarCampana());
         timerCampana.start();
+
+        // Recordatorios pre-checkin: al inicio y cada 12 horas
+        enviarRecordatoriosMañana();
+        timerRecordatorio = new Timer(12 * 60 * 60_000, e -> enviarRecordatoriosMañana());
+        timerRecordatorio.start();
+    }
+
+    /**
+     * Busca reservaciones con estado CHECKIN cuya fecha_checkout ya pasó
+     * y las marca automáticamente como CHECKOUT.
+     * Se ejecuta al iniciar sesión y cada hora.
+     * Corre en SwingWorker para no bloquear la UI.
+     */
+    private void ejecutarAutoCheckout() {
+        new SwingWorker<Integer, Void>() {
+            @Override
+            protected Integer doInBackground() {
+                int procesadas = 0;
+                String sql =
+                    "SELECT id FROM reservaciones " +
+                    "WHERE estado = 'CHECKIN' AND fecha_checkout < CURDATE()";
+                String upd = "UPDATE reservaciones SET estado = 'CHECKOUT' WHERE id = ?";
+
+                try (Connection conn = ConexionDB.getConexion();
+                     PreparedStatement psSelect = conn.prepareStatement(sql);
+                     ResultSet rs = psSelect.executeQuery()) {
+
+                    while (rs.next()) {
+                        int id = rs.getInt("id");
+                        try (PreparedStatement psUpd = conn.prepareStatement(upd)) {
+                            psUpd.setInt(1, id);
+                            if (psUpd.executeUpdate() > 0) {
+                                // También marcar habitación como DISPONIBLE
+                                String updHab =
+                                    "UPDATE habitaciones h " +
+                                    "INNER JOIN reservaciones r ON r.id_habitacion = h.id " +
+                                    "SET h.estado = 'DISPONIBLE' " +
+                                    "WHERE r.id = ? AND h.estado = 'OCUPADA'";
+                                try (PreparedStatement psHab = conn.prepareStatement(updHab)) {
+                                    psHab.setInt(1, id);
+                                    psHab.executeUpdate();
+                                }
+                                BitacoraService.log(
+                                    usuarioActual,
+                                    Bitacora.ACCION_CHECKOUT,
+                                    Bitacora.MODULO_CHECKINOUT,
+                                    "Auto-checkout: reservación #" + id +
+                                    " vencida — estado cambiado a CHECKOUT");
+                                procesadas++;
+                            }
+                        }
+                    }
+                } catch (Exception ex) {
+                    // Log silencioso — no interrumpir al usuario
+                    org.slf4j.LoggerFactory.getLogger(MenuPrincipal.class)
+                        .warn("Auto-checkout error: {}", ex.getMessage());
+                }
+                return procesadas;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    int n = get();
+                    if (n > 0) {
+                        // Notificar en campana
+                        String tooltip = lblCampana.getToolTipText();
+                        lblCampana.setToolTipText(
+                            tooltip + "  |  ⚠ " + n + " auto-checkout(s) aplicado(s)");
+                        // Toast ligero en barra de título
+                        String titulo = getTitle();
+                        setTitle("✅ " + n + " checkout(s) automático(s)  —  " + titulo);
+                        // Restaurar título tras 5 seg
+                        new Timer(5000, e -> {
+                            setTitle(titulo);
+                            ((Timer) e.getSource()).stop();
+                        }).start();
+                    }
+                } catch (Exception ignored) {}
+            }
+        }.execute();
     }
 
     private void actualizarCampana() {
@@ -780,6 +873,82 @@ public class MenuPrincipal extends JFrame {
     }
 
     /**
+     * Busca reservaciones cuyo check-in es mañana (estado PENDIENTE o CONFIRMADA)
+     * y envía un email de recordatorio a cada cliente que tenga email registrado.
+     * Se ejecuta al iniciar sesión y cada 12 horas. Corre en hilo aparte.
+     */
+    private void enviarRecordatoriosMañana() {
+        new SwingWorker<Integer, Void>() {
+            @Override
+            protected Integer doInBackground() {
+                int enviados = 0;
+                String sql =
+                    "SELECT r.id, r.id_cliente, r.id_habitacion, " +
+                    "       r.fecha_checkin, r.fecha_checkout, r.estado, " +
+                    "       c.nombre, c.apellido, c.email, " +
+                    "       h.numero, t.nombre AS tipo_nombre, t.precio_base, t.capacidad, t.id AS tipo_id " +
+                    "FROM reservaciones r " +
+                    "JOIN clientes c    ON r.id_cliente    = c.id " +
+                    "JOIN habitaciones h ON r.id_habitacion = h.id " +
+                    "JOIN tipo_habitacion t ON h.id_tipo   = t.id " +
+                    "WHERE r.fecha_checkin = DATE_ADD(CURDATE(), INTERVAL 1 DAY) " +
+                    "  AND r.estado IN ('PENDIENTE','CONFIRMADA') " +
+                    "  AND c.email IS NOT NULL AND c.email != ''";
+
+                try (Connection conn = ConexionDB.getConexion();
+                     PreparedStatement ps = conn.prepareStatement(sql);
+                     ResultSet rs = ps.executeQuery()) {
+
+                    while (rs.next()) {
+                        // Build lightweight Reservacion for email template
+                        com.hotel.modelo.Cliente cli = new com.hotel.modelo.Cliente();
+                        cli.setId(rs.getInt("id_cliente"));
+                        cli.setNombre(rs.getString("nombre"));
+                        cli.setApellido(rs.getString("apellido"));
+                        cli.setEmail(rs.getString("email"));
+
+                        com.hotel.modelo.TipoHabitacion tipo = new com.hotel.modelo.TipoHabitacion();
+                        tipo.setId(rs.getInt("tipo_id"));
+                        tipo.setNombre(rs.getString("tipo_nombre"));
+                        tipo.setPrecioBase(rs.getDouble("precio_base"));
+                        tipo.setCapacidad(rs.getInt("capacidad"));
+
+                        com.hotel.modelo.Habitacion hab = new com.hotel.modelo.Habitacion();
+                        hab.setNumero(rs.getString("numero"));
+                        hab.setTipo(tipo);
+
+                        Reservacion res = new Reservacion();
+                        res.setId(rs.getInt("id"));
+                        res.setCliente(cli);
+                        res.setHabitacion(hab);
+                        res.setFechaCheckin(rs.getDate("fecha_checkin"));
+                        res.setFechaCheckout(rs.getDate("fecha_checkout"));
+                        res.setEstado(rs.getString("estado"));
+
+                        EmailService.enviarRecordatorioPrecheckin(res);
+                        enviados++;
+                    }
+                } catch (Exception ex) {
+                    org.slf4j.LoggerFactory.getLogger(MenuPrincipal.class)
+                        .warn("Recordatorio pre-checkin error: {}", ex.getMessage());
+                }
+                return enviados;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    int n = get();
+                    if (n > 0) {
+                        org.slf4j.LoggerFactory.getLogger(MenuPrincipal.class)
+                            .info("Recordatorios pre-checkin enviados: {}", n);
+                    }
+                } catch (Exception ignored) {}
+            }
+        }.execute();
+    }
+
+    /**
      * Cierra la sesión actual y regresa al Login después de confirmar.
      */
     private void cerrarSesion() {
@@ -792,7 +961,9 @@ public class MenuPrincipal extends JFrame {
         );
         if (opcion == JOptionPane.YES_OPTION) {
             guardarTamanoYPosicion();
-            if (timerCampana != null) timerCampana.stop();
+            if (timerCampana      != null) timerCampana.stop();
+            if (timerAutoCheckout != null) timerAutoCheckout.stop();
+            if (timerRecordatorio != null) timerRecordatorio.stop();
             new LoginForm().setVisible(true);
             dispose();
         }

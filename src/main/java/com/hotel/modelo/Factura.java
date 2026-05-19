@@ -1,5 +1,6 @@
 package com.hotel.modelo;
 
+import com.hotel.util.HotelConfig;
 import java.sql.Timestamp;
 
 /**
@@ -35,7 +36,7 @@ public class Factura {
     public Factura(Reservacion reservacion, String metodoPago) {
         this.reservacion  = reservacion;
         this.subtotal     = reservacion.getTotalSinImpuesto();
-        this.impuesto     = subtotal * 0.18;
+        this.impuesto     = subtotal * HotelConfig.getIva();
         this.total        = subtotal + impuesto;
         this.estado       = ESTADO_PENDIENTE;
         this.metodoPago   = metodoPago;

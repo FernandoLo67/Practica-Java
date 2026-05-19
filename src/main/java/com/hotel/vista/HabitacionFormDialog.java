@@ -5,7 +5,9 @@ import com.hotel.modelo.Habitacion;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
+import java.io.File;
 
 /**
  * Diálogo modal para ver y editar una habitación.
@@ -24,6 +26,8 @@ public class HabitacionFormDialog extends JDialog {
     private JComboBox<String> cmbEstado;
     private JTextField        txtPrecioEspecial;
     private JTextArea         txtDescripcion;
+    private JTextField        txtImagenPath;
+    private JLabel            lblImagenPreview;
 
     // Colores
     private static final Color COLOR_PRIMARIO = new Color(26, 35, 126);
@@ -39,7 +43,7 @@ public class HabitacionFormDialog extends JDialog {
     }
 
     private void configurarDialogo() {
-        setSize(440, 500);
+        setSize(460, 660);
         setLocationRelativeTo(getParent());
         setResizable(false);
     }
@@ -135,6 +139,44 @@ public class HabitacionFormDialog extends JDialog {
         ));
         form.add(new JScrollPane(txtDescripcion), g);
 
+        // Imagen
+        g.gridy++; g.weighty = 0; g.fill = GridBagConstraints.HORIZONTAL;
+        g.insets = new Insets(10, 0, 6, 0);
+        JLabel lblImg = new JLabel("Imagen (archivo local)");
+        lblImg.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblImg.setForeground(COLOR_TEXTO);
+        form.add(lblImg, g);
+
+        g.gridy++; g.insets = new Insets(0, 0, 4, 0);
+        JPanel panelImg = new JPanel(new BorderLayout(6, 0));
+        panelImg.setOpaque(false);
+        txtImagenPath = new JTextField();
+        txtImagenPath.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        txtImagenPath.setPreferredSize(new Dimension(0, 32));
+        txtImagenPath.setEditable(false);
+        txtImagenPath.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(190, 195, 220), 1),
+            BorderFactory.createEmptyBorder(4, 8, 4, 8)));
+        JButton btnSelImg = new JButton("Elegir…");
+        btnSelImg.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btnSelImg.setBackground(new Color(230, 235, 255));
+        btnSelImg.setOpaque(true);
+        btnSelImg.setBorderPainted(false);
+        btnSelImg.setFocusPainted(false);
+        btnSelImg.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnSelImg.addActionListener(e -> seleccionarImagen());
+        panelImg.add(txtImagenPath, BorderLayout.CENTER);
+        panelImg.add(btnSelImg,     BorderLayout.EAST);
+        form.add(panelImg, g);
+
+        // Miniatura
+        g.gridy++;
+        lblImagenPreview = new JLabel();
+        lblImagenPreview.setHorizontalAlignment(SwingConstants.CENTER);
+        lblImagenPreview.setPreferredSize(new Dimension(0, 80));
+        lblImagenPreview.setBorder(BorderFactory.createLineBorder(new Color(210, 215, 235), 1));
+        form.add(lblImagenPreview, g);
+
         // --- Botones ---
         JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 12));
         panelBotones.setBackground(new Color(245, 247, 255));
@@ -178,6 +220,51 @@ public class HabitacionFormDialog extends JDialog {
         if (habitacion.getPrecioEspecial() != null) {
             txtPrecioEspecial.setText(String.format("%.2f", habitacion.getPrecioEspecial()));
         }
+        if (habitacion.getImagenUrl() != null && !habitacion.getImagenUrl().isBlank()) {
+            txtImagenPath.setText(habitacion.getImagenUrl());
+            actualizarMiniatura(habitacion.getImagenUrl());
+        }
+    }
+
+    private void seleccionarImagen() {
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("Seleccionar imagen de la habitación");
+        fc.setFileFilter(new FileNameExtensionFilter(
+            "Imágenes (jpg, png, gif, bmp)", "jpg", "jpeg", "png", "gif", "bmp"));
+        if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            String ruta = fc.getSelectedFile().getAbsolutePath();
+            txtImagenPath.setText(ruta);
+            actualizarMiniatura(ruta);
+        }
+    }
+
+    private void actualizarMiniatura(String ruta) {
+        if (ruta == null || ruta.isBlank()) {
+            lblImagenPreview.setIcon(null);
+            lblImagenPreview.setText("");
+            return;
+        }
+        try {
+            File f = new File(ruta);
+            if (!f.exists()) { lblImagenPreview.setText("Archivo no encontrado"); return; }
+            ImageIcon icon = new ImageIcon(ruta);
+            int maxW = lblImagenPreview.getPreferredSize().width - 4;
+            int maxH = lblImagenPreview.getPreferredSize().height - 4;
+            if (maxW <= 0) maxW = 200;
+            int iw = icon.getIconWidth();
+            int ih = icon.getIconHeight();
+            if (iw > 0 && ih > 0) {
+                double scale = Math.min((double) maxW / iw, (double) maxH / ih);
+                int nw = (int)(iw * scale);
+                int nh = (int)(ih * scale);
+                java.awt.Image scaled = icon.getImage().getScaledInstance(nw, nh, java.awt.Image.SCALE_SMOOTH);
+                lblImagenPreview.setIcon(new ImageIcon(scaled));
+            }
+            lblImagenPreview.setText("");
+        } catch (Exception ex) {
+            lblImagenPreview.setIcon(null);
+            lblImagenPreview.setText("No se pudo cargar la imagen");
+        }
     }
 
     private void guardar() {
@@ -203,6 +290,8 @@ public class HabitacionFormDialog extends JDialog {
         habitacion.setEstado(nuevoEstado);
         habitacion.setDescripcion(nuevaDesc.isEmpty() ? null : nuevaDesc);
         habitacion.setPrecioEspecial(precioEspecial);
+        String rutaImagen = txtImagenPath.getText().trim();
+        habitacion.setImagenUrl(rutaImagen.isEmpty() ? null : rutaImagen);
 
         boolean ok = dao.actualizar(habitacion);
         if (ok) {

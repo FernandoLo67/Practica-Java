@@ -57,7 +57,7 @@ public class HabitacionDAOImpl implements HabitacionDAO {
 
     private static final String SQL_ACTUALIZAR =
         "UPDATE habitaciones SET numero = ?, piso = ?, id_tipo = ?, " +
-        "estado = ?, descripcion = ?, precio_especial = ? WHERE id = ?";
+        "estado = ?, descripcion = ?, precio_especial = ?, imagen_url = ? WHERE id = ?";
 
     private static final String SQL_CAMBIAR_ESTADO =
         "UPDATE habitaciones SET estado = ? WHERE id = ?";
@@ -190,7 +190,11 @@ public class HabitacionDAOImpl implements HabitacionDAO {
             ps.setString(5, h.getDescripcion());
             if (h.getPrecioEspecial() != null) ps.setDouble(6, h.getPrecioEspecial());
             else                               ps.setNull  (6, java.sql.Types.DECIMAL);
-            ps.setInt   (7, h.getId());
+            if (h.getImagenUrl() != null && !h.getImagenUrl().isBlank())
+                ps.setString(7, h.getImagenUrl());
+            else
+                ps.setNull(7, java.sql.Types.VARCHAR);
+            ps.setInt   (8, h.getId());
 
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {

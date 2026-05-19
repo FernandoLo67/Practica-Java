@@ -378,9 +378,16 @@ public class ClienteFormDialog extends JDialog {
             return;
         }
 
+        // Validar teléfono solo si fue ingresado
+        if (!telefono.isEmpty() && !Validaciones.esTelefonoValido(telefono)) {
+            mostrarError("El teléfono no tiene formato válido.\nEj: +502 2222-3333  o  99991234");
+            txtTelefono.requestFocus();
+            return;
+        }
+
         // Validar email solo si fue ingresado
         if (!email.isEmpty() && !Validaciones.esEmailValido(email)) {
-            mostrarError("El email ingresado no tiene un formato válido.");
+            mostrarError("El email ingresado no tiene un formato válido.\nEj: correo@ejemplo.com");
             txtEmail.requestFocus();
             return;
         }
