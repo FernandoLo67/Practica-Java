@@ -75,7 +75,7 @@ public class UsuarioFormDialog extends JDialog {
 
     private JPanel crearContenido() {
         JPanel root = new JPanel(new BorderLayout());
-        root.setBackground(Color.WHITE);
+        root.setBackground(Tema.COLOR_BLANCO);
 
         // ── Encabezado ──
         JPanel header = new JPanel(new BorderLayout());
@@ -91,7 +91,7 @@ public class UsuarioFormDialog extends JDialog {
 
         // ── Formulario ──
         JPanel form = new JPanel(new GridBagLayout());
-        form.setBackground(Color.WHITE);
+        form.setBackground(Tema.COLOR_BLANCO);
         form.setBorder(new EmptyBorder(20, 24, 12, 24));
 
         GridBagConstraints g = new GridBagConstraints();
@@ -144,7 +144,7 @@ public class UsuarioFormDialog extends JDialog {
             g.gridy = baseRow + 2;
             chkActivo = new JCheckBox("Cuenta activa");
             chkActivo.setFont(Tema.FUENTE_NORMAL);
-            chkActivo.setBackground(Color.WHITE);
+            chkActivo.setBackground(Tema.COLOR_BLANCO);
             chkActivo.setSelected(true);
             form.add(chkActivo, g);
         }
@@ -160,7 +160,7 @@ public class UsuarioFormDialog extends JDialog {
 
         // ── Botones ──
         JPanel botones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 12));
-        botones.setBackground(Color.WHITE);
+        botones.setBackground(Tema.COLOR_BLANCO);
         botones.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(1, 0, 0, 0, Tema.COLOR_BORDE),
             new EmptyBorder(0, 16, 0, 16)

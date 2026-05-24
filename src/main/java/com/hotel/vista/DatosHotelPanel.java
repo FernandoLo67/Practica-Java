@@ -128,7 +128,7 @@ public class DatosHotelPanel extends JPanel {
 
     private JPanel crearFormulario() {
         JPanel p = new JPanel(new GridBagLayout());
-        p.setBackground(Color.WHITE);
+        p.setBackground(Tema.COLOR_BLANCO);
         p.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(Tema.COLOR_BORDE, 1),
             new EmptyBorder(22, 24, 22, 24)

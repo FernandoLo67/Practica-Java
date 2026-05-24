@@ -1,6 +1,7 @@
 package com.hotel.vista;
 
 import com.hotel.dao.impl.FacturaDAOImpl;
+import com.hotel.util.Tema;
 import com.hotel.modelo.Bitacora;
 import com.hotel.modelo.Factura;
 import com.hotel.modelo.Reservacion;
@@ -99,7 +100,7 @@ public class FacturasPanel extends JPanel {
 
     private JPanel crearEncabezado() {
         JPanel p = new JPanel(new BorderLayout(10, 0));
-        p.setBackground(Color.WHITE);
+        p.setBackground(Tema.COLOR_BLANCO);
         p.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(215, 220, 240)),
             new EmptyBorder(14, 20, 14, 20)
@@ -173,7 +174,7 @@ public class FacturasPanel extends JPanel {
 
     private JPanel tarjeta(String icono, String titulo, JLabel numero, Color color) {
         JPanel t = new JPanel(new GridBagLayout());
-        t.setBackground(Color.WHITE);
+        t.setBackground(Tema.COLOR_BLANCO);
         t.setPreferredSize(new Dimension(180, 80));
         t.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(215, 220, 240), 1),
@@ -264,7 +265,7 @@ public class FacturasPanel extends JPanel {
 
         JScrollPane scroll = new JScrollPane(tabla);
         scroll.setBorder(BorderFactory.createEmptyBorder());
-        scroll.getViewport().setBackground(Color.WHITE);
+        scroll.getViewport().setBackground(Tema.COLOR_BLANCO);
         return scroll;
     }
 

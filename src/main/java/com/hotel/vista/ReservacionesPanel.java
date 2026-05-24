@@ -1,6 +1,7 @@
 package com.hotel.vista;
 
 import com.hotel.dao.impl.ReservacionDAOImpl;
+import com.hotel.util.Tema;
 import com.hotel.modelo.Reservacion;
 import com.hotel.modelo.Usuario;
 import com.hotel.util.ExcelExporter;
@@ -123,7 +124,7 @@ public class ReservacionesPanel extends JPanel {
 
     private JPanel crearEncabezado() {
         JPanel panel = new JPanel(new BorderLayout(10, 0));
-        panel.setBackground(Color.WHITE);
+        panel.setBackground(Tema.COLOR_BLANCO);
         panel.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(215, 220, 240)),
             new EmptyBorder(14, 20, 14, 20)
@@ -156,7 +157,7 @@ public class ReservacionesPanel extends JPanel {
         });
         cmbFiltro.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         cmbFiltro.setPreferredSize(new Dimension(145, 34));
-        cmbFiltro.setBackground(Color.WHITE);
+        cmbFiltro.setBackground(Tema.COLOR_BLANCO);
         cmbFiltro.addActionListener(e -> filtrar());
 
         panelFiltros.add(new JLabel("🔍"));
@@ -227,7 +228,7 @@ public class ReservacionesPanel extends JPanel {
 
     private JPanel tarjeta(String icono, String titulo, JLabel numero, Color color) {
         JPanel t = new JPanel(new GridBagLayout());
-        t.setBackground(Color.WHITE);
+        t.setBackground(Tema.COLOR_BLANCO);
         t.setPreferredSize(new Dimension(155, 80));
         t.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(215, 220, 240), 1),
@@ -326,7 +327,7 @@ public class ReservacionesPanel extends JPanel {
 
         JScrollPane scroll = new JScrollPane(tabla);
         scroll.setBorder(BorderFactory.createEmptyBorder());
-        scroll.getViewport().setBackground(Color.WHITE);
+        scroll.getViewport().setBackground(Tema.COLOR_BLANCO);
         return scroll;
     }
 

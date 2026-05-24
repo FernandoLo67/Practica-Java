@@ -4,6 +4,7 @@ import com.hotel.dao.impl.ClienteDAOImpl;
 import com.hotel.modelo.Bitacora;
 import com.hotel.modelo.Cliente;
 import com.hotel.util.BitacoraService;
+import com.hotel.util.Tema;
 import com.hotel.util.Validaciones;
 
 import javax.swing.*;
@@ -63,8 +64,8 @@ public class ClienteFormDialog extends JDialog {
     // =========================================================
     // COLORES
     // =========================================================
-    private static final Color COLOR_PRIMARIO = new Color(26, 35, 126);
-    private static final Color COLOR_FONDO    = new Color(248, 250, 255);
+    private final Color COLOR_PRIMARIO = Tema.COLOR_PRIMARIO;
+    private final Color COLOR_FONDO    = Tema.COLOR_FONDO;
 
     // =========================================================
     // CONSTRUCTOR
@@ -241,7 +242,7 @@ public class ClienteFormDialog extends JDialog {
         btnCancelar = new JButton("Cancelar");
         btnCancelar.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         btnCancelar.setForeground(new Color(80, 80, 100));
-        btnCancelar.setBackground(Color.WHITE);
+        btnCancelar.setBackground(Tema.COLOR_BLANCO);
         btnCancelar.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(200, 200, 215), 1),
             new EmptyBorder(8, 20, 8, 20)

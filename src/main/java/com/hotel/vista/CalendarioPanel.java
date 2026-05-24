@@ -37,11 +37,11 @@ import java.util.List;
 public class CalendarioPanel extends JPanel {
 
     // ── Constantes de color por estado ───────────────────────────────────────
-    private static final Color C_CONFIRMADA  = new Color(63,  81, 181);   // azul
-    private static final Color C_CHECKIN     = new Color(46, 125,  50);   // verde
-    private static final Color C_PENDIENTE   = new Color(230, 81,   0);   // naranja
-    private static final Color C_CHECKOUT    = new Color(120, 120, 120);  // gris
-    private static final Color C_CANCELADA   = new Color(198,  40,  40);  // rojo
+    private final Color C_CONFIRMADA  = Tema.COLOR_CONFIRMADA;
+    private final Color C_CHECKIN     = Tema.COLOR_CHECKIN;
+    private final Color C_PENDIENTE   = Tema.COLOR_PENDIENTE;
+    private final Color C_CHECKOUT    = Tema.COLOR_CHECKOUT;
+    private final Color C_CANCELADA   = Tema.COLOR_CANCELADA;
 
     // ── Estado ───────────────────────────────────────────────────────────────
     private YearMonth mesActual = YearMonth.now();
@@ -75,7 +75,7 @@ public class CalendarioPanel extends JPanel {
 
     private JPanel crearEncabezado() {
         JPanel p = new JPanel(new BorderLayout());
-        p.setBackground(Color.WHITE);
+        p.setBackground(Tema.COLOR_BLANCO);
         p.setBorder(javax.swing.BorderFactory.createCompoundBorder(
             javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, Tema.COLOR_BORDE),
             new EmptyBorder(12, 20, 12, 20)
@@ -115,7 +115,7 @@ public class CalendarioPanel extends JPanel {
         JButton btnRefresh = new JButton("↺");
         btnRefresh.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         btnRefresh.setForeground(Tema.COLOR_TEXTO_SECUNDARIO);
-        btnRefresh.setBackground(Color.WHITE);
+        btnRefresh.setBackground(Tema.COLOR_BLANCO);
         btnRefresh.setOpaque(true);
         btnRefresh.setBorderPainted(false);
         btnRefresh.setFocusPainted(false);
@@ -171,7 +171,7 @@ public class CalendarioPanel extends JPanel {
 
         JScrollPane scroll = new JScrollPane(tabla);
         scroll.setBorder(javax.swing.BorderFactory.createEmptyBorder());
-        scroll.getViewport().setBackground(Color.WHITE);
+        scroll.getViewport().setBackground(Tema.COLOR_BLANCO);
         // Fijar ancho de primera columna (nombre habitación)
         scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         return scroll;

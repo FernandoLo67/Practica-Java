@@ -4,6 +4,7 @@ import com.hotel.dao.impl.UsuarioDAOImpl;
 import com.hotel.modelo.Bitacora;
 import com.hotel.modelo.Usuario;
 import com.hotel.util.BitacoraService;
+import com.hotel.util.Tema;
 import com.hotel.util.PasswordUtil;
 import com.hotel.util.Validaciones;
 
@@ -30,10 +31,10 @@ public class CambiarPasswordDialog extends JDialog {
     // =========================================================
     // COLORES
     // =========================================================
-    private static final Color COLOR_PRIMARIO = new Color(26, 35, 126);
-    private static final Color COLOR_FONDO    = new Color(248, 250, 255);
-    private static final Color COLOR_ERROR    = new Color(185, 28, 28);
-    private static final Color COLOR_OK       = new Color(21, 128, 61);
+    private final Color COLOR_PRIMARIO = Tema.COLOR_PRIMARIO;
+    private final Color COLOR_FONDO    = Tema.COLOR_FONDO;
+    private final Color COLOR_ERROR    = Tema.COLOR_ERROR;
+    private final Color COLOR_OK       = Tema.COLOR_EXITO;
 
     // =========================================================
     // COMPONENTES

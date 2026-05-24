@@ -237,7 +237,7 @@ public class DashboardPanel extends JPanel {
     /** Tarjeta KPI más compacta para la segunda fila. */
     private JPanel tarjetaKPICompacta(String icono, String etiqueta, JLabel lblValor, Color color) {
         JPanel p = new JPanel(new BorderLayout(10, 0));
-        p.setBackground(Color.WHITE);
+        p.setBackground(Tema.COLOR_BLANCO);
         p.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(220, 225, 240), 1),
             new EmptyBorder(12, 16, 12, 16)
@@ -343,7 +343,7 @@ public class DashboardPanel extends JPanel {
 
     private JPanel crearPanelTabla(String titulo, DefaultTableModel modelo, int[] anchos) {
         JPanel p = new JPanel(new BorderLayout());
-        p.setBackground(Color.WHITE);
+        p.setBackground(Tema.COLOR_BLANCO);
         p.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(Tema.COLOR_BORDE, 1),
             new EmptyBorder(12, 14, 12, 14)
@@ -449,7 +449,7 @@ public class DashboardPanel extends JPanel {
         rangeAxis.setTickLabelFont(Tema.FUENTE_SMALL);
 
         ChartPanel panelBarra = new ChartPanel(barChart);
-        panelBarra.setBackground(Color.WHITE);
+        panelBarra.setBackground(Tema.COLOR_BLANCO);
         panelBarra.setPreferredSize(new Dimension(0, 280));
         contenedor.add(wrapGrafica("💰  Ingresos mensuales — últimos 6 meses", panelBarra));
 
@@ -471,7 +471,7 @@ public class DashboardPanel extends JPanel {
         piePlot.setShadowPaint(null);
 
         ChartPanel panelPie = new ChartPanel(pieChart);
-        panelPie.setBackground(Color.WHITE);
+        panelPie.setBackground(Tema.COLOR_BLANCO);
         contenedor.add(wrapGrafica("🏨  Habitaciones por estado", panelPie));
 
         return contenedor;
@@ -479,7 +479,7 @@ public class DashboardPanel extends JPanel {
 
     private JPanel wrapGrafica(String titulo, ChartPanel chart) {
         JPanel p = new JPanel(new BorderLayout());
-        p.setBackground(Color.WHITE);
+        p.setBackground(Tema.COLOR_BLANCO);
         p.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(Tema.COLOR_BORDE, 1),
             new EmptyBorder(12, 14, 12, 14)

@@ -96,7 +96,7 @@ public class BitacoraPanel extends JPanel {
         });
         cmbModulo.setFont(Tema.FUENTE_NORMAL);
         cmbModulo.setPreferredSize(new Dimension(160, 32));
-        cmbModulo.setBackground(Color.WHITE);
+        cmbModulo.setBackground(Tema.COLOR_BLANCO);
 
         txtBuscar.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             @Override public void insertUpdate(javax.swing.event.DocumentEvent e)  { filtrar(); }
@@ -191,7 +191,7 @@ public class BitacoraPanel extends JPanel {
 
         JScrollPane scroll = new JScrollPane(tabla);
         scroll.setBorder(BorderFactory.createEmptyBorder());
-        scroll.getViewport().setBackground(Color.WHITE);
+        scroll.getViewport().setBackground(Tema.COLOR_BLANCO);
         return scroll;
     }
 
@@ -240,7 +240,7 @@ public class BitacoraPanel extends JPanel {
         JButton b = new JButton(texto);
         b.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         b.setForeground(new Color(60, 70, 130));
-        b.setBackground(Color.WHITE);
+        b.setBackground(Tema.COLOR_BLANCO);
         b.setOpaque(true);
         b.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(200, 210, 240), 1),

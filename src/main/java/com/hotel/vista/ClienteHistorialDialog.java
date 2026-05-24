@@ -58,11 +58,11 @@ public class ClienteHistorialDialog extends JDialog {
     // =========================================================
     // COLORES DE ESTADO
     // =========================================================
-    private static final Color C_VERDE    = new Color(21,  128,  61);
-    private static final Color C_AZUL     = new Color(29,  78, 216);
-    private static final Color C_AMBAR    = new Color(146,  64,  14);
-    private static final Color C_ROJO     = new Color(185,  28,  28);
-    private static final Color C_GRIS     = new Color(100, 100, 110);
+    private final Color C_VERDE    = Tema.COLOR_EXITO;
+    private final Color C_AZUL     = Tema.COLOR_INFO;
+    private final Color C_AMBAR    = Tema.COLOR_ADVERTENCIA;
+    private final Color C_ROJO     = Tema.COLOR_ERROR;
+    private final Color C_GRIS     = Tema.COLOR_GRIS;
 
     // =========================================================
     // ESTADO

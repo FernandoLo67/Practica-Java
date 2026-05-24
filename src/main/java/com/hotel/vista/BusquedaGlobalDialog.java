@@ -6,6 +6,7 @@ import com.hotel.dao.impl.ReservacionDAOImpl;
 import com.hotel.modelo.Cliente;
 import com.hotel.modelo.Habitacion;
 import com.hotel.modelo.Reservacion;
+import com.hotel.util.Tema;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -39,13 +40,13 @@ public class BusquedaGlobalDialog extends JDialog {
     // =========================================================
     // COLORES
     // =========================================================
-    private static final Color COLOR_PRIMARIO   = new Color(26, 35, 126);
-    private static final Color COLOR_HOVER      = new Color(237, 241, 255);
-    private static final Color COLOR_FONDO      = new Color(248, 250, 255);
-    private static final Color COLOR_SEPARADOR  = new Color(215, 220, 240);
-    private static final Color COLOR_BADGE_CLI  = new Color(30, 100, 200);
-    private static final Color COLOR_BADGE_HAB  = new Color(46, 125, 50);
-    private static final Color COLOR_BADGE_RES  = new Color(123, 31, 162);
+    private final Color COLOR_PRIMARIO   = Tema.COLOR_PRIMARIO;
+    private final Color COLOR_HOVER      = Tema.COLOR_FONDO;
+    private final Color COLOR_FONDO      = Tema.COLOR_FONDO;
+    private final Color COLOR_SEPARADOR  = Tema.COLOR_BORDE;
+    private final Color COLOR_BADGE_CLI  = Tema.COLOR_INFO;
+    private final Color COLOR_BADGE_HAB  = Tema.COLOR_EXITO;
+    private final Color COLOR_BADGE_RES  = Tema.COLOR_PRIMARIO;
 
     // =========================================================
     // MODELO DE RESULTADO

@@ -5,6 +5,7 @@ import com.hotel.dao.impl.HabitacionDAOImpl;
 import com.hotel.dao.impl.ReservacionDAOImpl;
 import com.hotel.modelo.*;
 import com.hotel.util.BitacoraService;
+import com.hotel.util.Tema;
 import com.hotel.util.EmailService;
 
 import javax.swing.*;
@@ -46,10 +47,10 @@ public class ReservacionFormDialog extends JDialog {
     private JLabel                 lblPrecioInfo;
     private JLabel                 lblMensaje;
 
-    private static final Color COLOR_PRIMARIO = new Color(26, 35, 126);
-    private static final Color COLOR_ERROR    = new Color(198, 40, 40);
-    private static final Color COLOR_EXITO    = new Color(46, 125, 50);
-    private static final Color COLOR_TEXTO    = new Color(33, 33, 33);
+    private final Color COLOR_PRIMARIO = Tema.COLOR_PRIMARIO;
+    private final Color COLOR_ERROR    = Tema.COLOR_ERROR;
+    private final Color COLOR_EXITO    = Tema.COLOR_EXITO;
+    private final Color COLOR_TEXTO    = Tema.COLOR_TEXTO;
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     public ReservacionFormDialog(Frame padre, Reservacion reservacion, Usuario usuarioActual) {
@@ -73,7 +74,7 @@ public class ReservacionFormDialog extends JDialog {
 
     private void initComponents() {
         JPanel principal = new JPanel(new BorderLayout());
-        principal.setBackground(Color.WHITE);
+        principal.setBackground(Tema.COLOR_BLANCO);
 
         // --- Header ---
         JPanel header = new JPanel(new BorderLayout());
@@ -99,7 +100,7 @@ public class ReservacionFormDialog extends JDialog {
 
         // --- Formulario ---
         JPanel form = new JPanel(new GridBagLayout());
-        form.setBackground(Color.WHITE);
+        form.setBackground(Tema.COLOR_BLANCO);
         form.setBorder(new EmptyBorder(16, 24, 10, 24));
 
         GridBagConstraints g = new GridBagConstraints();
@@ -114,7 +115,7 @@ public class ReservacionFormDialog extends JDialog {
         cmbCliente = new JComboBox<>();
         cmbCliente.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         cmbCliente.setPreferredSize(new Dimension(0, 36));
-        cmbCliente.setBackground(Color.WHITE);
+        cmbCliente.setBackground(Tema.COLOR_BLANCO);
         form.add(cmbCliente, g);
 
         // Habitación
@@ -124,7 +125,7 @@ public class ReservacionFormDialog extends JDialog {
         cmbHabitacion = new JComboBox<>();
         cmbHabitacion.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         cmbHabitacion.setPreferredSize(new Dimension(0, 36));
-        cmbHabitacion.setBackground(Color.WHITE);
+        cmbHabitacion.setBackground(Tema.COLOR_BLANCO);
         cmbHabitacion.addActionListener(e -> actualizarInfoPrecio());
         form.add(cmbHabitacion, g);
 
@@ -172,7 +173,7 @@ public class ReservacionFormDialog extends JDialog {
             });
             cmbEstado.setFont(new Font("Segoe UI", Font.PLAIN, 13));
             cmbEstado.setPreferredSize(new Dimension(0, 36));
-            cmbEstado.setBackground(Color.WHITE);
+            cmbEstado.setBackground(Tema.COLOR_BLANCO);
             form.add(cmbEstado, g);
         }
 

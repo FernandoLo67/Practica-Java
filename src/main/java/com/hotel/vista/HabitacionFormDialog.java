@@ -2,6 +2,7 @@ package com.hotel.vista;
 
 import com.hotel.dao.impl.HabitacionDAOImpl;
 import com.hotel.modelo.Habitacion;
+import com.hotel.util.Tema;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -23,15 +24,16 @@ public class HabitacionFormDialog extends JDialog {
     private boolean guardadoExitoso = false;
 
     // Componentes
+    private JTextField        txtNumero;
     private JComboBox<String> cmbEstado;
     private JTextField        txtPrecioEspecial;
     private JTextArea         txtDescripcion;
     private JTextField        txtImagenPath;
     private JLabel            lblImagenPreview;
 
-    // Colores
-    private static final Color COLOR_PRIMARIO = new Color(26, 35, 126);
-    private static final Color COLOR_TEXTO    = new Color(33, 33, 33);
+    // Colores — instancia para que reflejen el tema activo al abrirse
+    private final Color COLOR_PRIMARIO = Tema.COLOR_PRIMARIO;
+    private final Color COLOR_TEXTO    = Tema.COLOR_TEXTO;
 
     public HabitacionFormDialog(Frame padre, Habitacion habitacion) {
         super(padre, "Editar Habitación", true);
@@ -43,14 +45,14 @@ public class HabitacionFormDialog extends JDialog {
     }
 
     private void configurarDialogo() {
-        setSize(460, 660);
+        setSize(460, 720);
         setLocationRelativeTo(getParent());
         setResizable(false);
     }
 
     private void initComponents() {
         JPanel panelPrincipal = new JPanel(new BorderLayout());
-        panelPrincipal.setBackground(Color.WHITE);
+        panelPrincipal.setBackground(Tema.COLOR_BLANCO);
 
         // --- Encabezado ---
         JPanel header = new JPanel(new BorderLayout());
@@ -75,7 +77,7 @@ public class HabitacionFormDialog extends JDialog {
 
         // --- Formulario ---
         JPanel form = new JPanel(new GridBagLayout());
-        form.setBackground(Color.WHITE);
+        form.setBackground(Tema.COLOR_BLANCO);
         form.setBorder(new EmptyBorder(20, 24, 20, 24));
 
         GridBagConstraints g = new GridBagConstraints();
@@ -84,7 +86,24 @@ public class HabitacionFormDialog extends JDialog {
         g.weightx = 1.0;
         g.insets = new Insets(0, 0, 6, 0);
 
+        // Número de habitación
+        JLabel lblNumero = new JLabel("Número de habitación");
+        lblNumero.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblNumero.setForeground(COLOR_TEXTO);
+        form.add(lblNumero, g);
+
+        g.gridy++; g.insets = new Insets(0, 0, 4, 0);
+        txtNumero = new JTextField();
+        txtNumero.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        txtNumero.setPreferredSize(new Dimension(0, 36));
+        txtNumero.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(190, 195, 220), 1),
+            BorderFactory.createEmptyBorder(4, 10, 4, 10)));
+        txtNumero.setToolTipText("Identificador único de la habitación (ej: 101, A-5)");
+        form.add(txtNumero, g);
+
         // Estado
+        g.gridy++; g.insets = new Insets(14, 0, 6, 0);
         JLabel lblEstado = new JLabel("Estado");
         lblEstado.setFont(new Font("Segoe UI", Font.BOLD, 13));
         lblEstado.setForeground(COLOR_TEXTO);
@@ -96,7 +115,7 @@ public class HabitacionFormDialog extends JDialog {
         });
         cmbEstado.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         cmbEstado.setPreferredSize(new Dimension(0, 36));
-        cmbEstado.setBackground(Color.WHITE);
+        cmbEstado.setBackground(Tema.COLOR_BLANCO);
         form.add(cmbEstado, g);
 
         // Precio especial
@@ -215,6 +234,7 @@ public class HabitacionFormDialog extends JDialog {
     }
 
     private void cargarDatos() {
+        txtNumero.setText(habitacion.getNumero() != null ? habitacion.getNumero() : "");
         cmbEstado.setSelectedItem(habitacion.getEstado());
         txtDescripcion.setText(habitacion.getDescripcion() != null ? habitacion.getDescripcion() : "");
         if (habitacion.getPrecioEspecial() != null) {
@@ -268,6 +288,15 @@ public class HabitacionFormDialog extends JDialog {
     }
 
     private void guardar() {
+        String nuevoNumero = txtNumero.getText().trim();
+        if (nuevoNumero.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                "El número de habitación no puede estar vacío.",
+                "Error", JOptionPane.WARNING_MESSAGE);
+            txtNumero.requestFocus();
+            return;
+        }
+
         String nuevoEstado = (String) cmbEstado.getSelectedItem();
         String nuevaDesc   = txtDescripcion.getText().trim();
         String precioStr   = txtPrecioEspecial.getText().trim();
@@ -287,6 +316,7 @@ public class HabitacionFormDialog extends JDialog {
             }
         }
 
+        habitacion.setNumero(nuevoNumero);
         habitacion.setEstado(nuevoEstado);
         habitacion.setDescripcion(nuevaDesc.isEmpty() ? null : nuevaDesc);
         habitacion.setPrecioEspecial(precioEspecial);
@@ -299,7 +329,8 @@ public class HabitacionFormDialog extends JDialog {
             dispose();
         } else {
             JOptionPane.showMessageDialog(this,
-                "No se pudo guardar los cambios.",
+                "No se pudo guardar los cambios.\n" +
+                "Si cambió el número, verifique que no exista otra habitación con ese número.",
                 "Error", JOptionPane.ERROR_MESSAGE);
         }
     }

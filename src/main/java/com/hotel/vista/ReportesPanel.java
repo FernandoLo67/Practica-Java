@@ -1,6 +1,7 @@
 package com.hotel.vista;
 
 import com.hotel.dao.impl.ClienteDAOImpl;
+import com.hotel.util.Tema;
 import com.hotel.dao.impl.FacturaDAOImpl;
 import com.hotel.dao.impl.HabitacionDAOImpl;
 import com.hotel.dao.impl.ReservacionDAOImpl;
@@ -75,7 +76,7 @@ public class ReportesPanel extends JPanel {
 
     private JPanel crearEncabezado() {
         JPanel p = new JPanel(new BorderLayout(0, 8));
-        p.setBackground(Color.WHITE);
+        p.setBackground(Tema.COLOR_BLANCO);
         p.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(215, 220, 240)),
             new EmptyBorder(14, 20, 14, 20)
@@ -274,7 +275,7 @@ public class ReportesPanel extends JPanel {
 
     private JPanel kpi(String icono, String titulo, String valor, Color color) {
         JPanel p = new JPanel(new GridBagLayout());
-        p.setBackground(Color.WHITE);
+        p.setBackground(Tema.COLOR_BLANCO);
         p.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(215, 220, 240), 1),
             new EmptyBorder(14, 18, 14, 18)
@@ -488,7 +489,7 @@ public class ReportesPanel extends JPanel {
 
     private JPanel crearPanelCard(String titulo) {
         JPanel p = new JPanel(new BorderLayout());
-        p.setBackground(Color.WHITE);
+        p.setBackground(Tema.COLOR_BLANCO);
         p.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(215, 220, 240), 1),
             new EmptyBorder(14, 16, 14, 16)

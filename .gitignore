@@ -1,5 +1,8 @@
 /target/
 
+# Cowork AI assistant notes (internal only)
+.claude/
+
 # Credenciales de base de datos (NUNCA subir a GitHub)
 src/main/resources/database.properties
 

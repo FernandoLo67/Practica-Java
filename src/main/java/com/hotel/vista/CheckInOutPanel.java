@@ -1,6 +1,7 @@
 package com.hotel.vista;
 
 import com.hotel.dao.impl.HabitacionDAOImpl;
+import com.hotel.util.Tema;
 import com.hotel.dao.impl.ReservacionDAOImpl;
 import com.hotel.dao.impl.FacturaDAOImpl;
 import com.hotel.modelo.*;
@@ -72,7 +73,7 @@ public class CheckInOutPanel extends JPanel {
 
     private JPanel crearEncabezado() {
         JPanel p = new JPanel(new BorderLayout());
-        p.setBackground(Color.WHITE);
+        p.setBackground(Tema.COLOR_BLANCO);
         p.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(215, 220, 240)),
             new EmptyBorder(14, 20, 14, 20)

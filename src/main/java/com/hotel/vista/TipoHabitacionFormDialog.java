@@ -4,6 +4,7 @@ import com.hotel.dao.impl.TipoHabitacionDAOImpl;
 import com.hotel.modelo.Bitacora;
 import com.hotel.modelo.TipoHabitacion;
 import com.hotel.util.BitacoraService;
+import com.hotel.util.Tema;
 import com.hotel.util.Validaciones;
 
 import javax.swing.*;
@@ -27,8 +28,8 @@ public class TipoHabitacionFormDialog extends JDialog {
     private final TipoHabitacionDAOImpl dao;
     private boolean guardadoExitoso = false;
 
-    private static final Color COLOR_PRIMARIO = new Color(26, 35, 126);
-    private static final Color COLOR_FONDO    = new Color(248, 250, 255);
+    private final Color COLOR_PRIMARIO = Tema.COLOR_PRIMARIO;
+    private final Color COLOR_FONDO    = Tema.COLOR_FONDO;
 
     // =========================================================
     // CONSTRUCTOR
