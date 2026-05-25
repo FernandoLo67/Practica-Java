@@ -63,7 +63,7 @@ public class FacturaDAOImpl implements FacturaDAO {
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) lista.add(mapear(rs));
         } catch (SQLException e) {
-            log.error("Error en listarTodas(): " + e.getMessage());
+            log.error("Error en listarTodas()", e);
         }
         return lista;
     }
@@ -77,7 +77,7 @@ public class FacturaDAOImpl implements FacturaDAO {
                 if (rs.next()) return mapear(rs);
             }
         } catch (SQLException e) {
-            log.error("Error en buscarPorId(): " + e.getMessage());
+            log.error("Error en buscarPorId()", e);
         }
         return null;
     }
@@ -91,7 +91,7 @@ public class FacturaDAOImpl implements FacturaDAO {
                 if (rs.next()) return mapear(rs);
             }
         } catch (SQLException e) {
-            log.error("Error en buscarPorReservacion(): " + e.getMessage());
+            log.error("Error en buscarPorReservacion()", e);
         }
         return null;
     }
@@ -118,7 +118,7 @@ public class FacturaDAOImpl implements FacturaDAO {
                 return true;
             }
         } catch (SQLException e) {
-            log.error("Error en guardar(): " + e.getMessage());
+            log.error("Error en guardar()", e);
         }
         return false;
     }
@@ -131,7 +131,7 @@ public class FacturaDAOImpl implements FacturaDAO {
             ps.setInt   (2, id);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            log.error("Error en actualizarEstado(): " + e.getMessage());
+            log.error("Error en actualizarEstado()", e);
         }
         return false;
     }
@@ -145,7 +145,7 @@ public class FacturaDAOImpl implements FacturaDAO {
                 if (rs.next()) return rs.getInt(1);
             }
         } catch (SQLException e) {
-            log.error("Error en contarPorEstado(): " + e.getMessage());
+            log.error("Error en contarPorEstado()", e);
         }
         return 0;
     }
@@ -159,7 +159,7 @@ public class FacturaDAOImpl implements FacturaDAO {
                 if (rs.next()) return rs.getDouble(1);
             }
         } catch (SQLException e) {
-            log.error("Error en sumarTotalPorEstado(): " + e.getMessage());
+            log.error("Error en sumarTotalPorEstado()", e);
         }
         return 0;
     }

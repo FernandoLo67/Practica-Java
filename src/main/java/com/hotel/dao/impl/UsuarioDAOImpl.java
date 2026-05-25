@@ -94,8 +94,7 @@ public class UsuarioDAOImpl implements UsuarioDAO {
                             String nuevoHash = PasswordUtil.hashear(password);
                             actualizarPassword(u.getId(), nuevoHash);
                             u.setPassword(nuevoHash);
-                            System.out.println("✓ Password del usuario '" + usuario +
-                                "' migrado a BCrypt automáticamente.");
+                            log.info("Password del usuario '{}' migrado a BCrypt automáticamente.", usuario);
                         }
 
                         return u;
@@ -104,7 +103,7 @@ public class UsuarioDAOImpl implements UsuarioDAO {
             }
 
         } catch (SQLException e) {
-            log.error("Error en autenticar(): " + e.getMessage());
+            log.error("Error en autenticar()", e);
         }
 
         return null; // null = credenciales incorrectas o error
@@ -128,7 +127,7 @@ public class UsuarioDAOImpl implements UsuarioDAO {
             }
 
         } catch (SQLException e) {
-            log.error("Error en buscarPorId(): " + e.getMessage());
+            log.error("Error en buscarPorId()", e);
         }
         return null;
     }
@@ -146,7 +145,7 @@ public class UsuarioDAOImpl implements UsuarioDAO {
             }
 
         } catch (SQLException e) {
-            log.error("Error en listarTodos(): " + e.getMessage());
+            log.error("Error en listarTodos()", e);
         }
 
         return lista;
@@ -186,7 +185,7 @@ public class UsuarioDAOImpl implements UsuarioDAO {
             }
 
         } catch (SQLException e) {
-            log.error("Error en guardar(): " + e.getMessage());
+            log.error("Error en guardar()", e);
         }
         return false;
     }
@@ -209,7 +208,7 @@ public class UsuarioDAOImpl implements UsuarioDAO {
             return ps.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            log.error("Error en actualizar(): " + e.getMessage());
+            log.error("Error en actualizar()", e);
         }
         return false;
     }
@@ -229,7 +228,7 @@ public class UsuarioDAOImpl implements UsuarioDAO {
             return ps.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            log.error("Error en actualizarPassword(): " + e.getMessage());
+            log.error("Error en actualizarPassword()", e);
         }
         return false;
     }
@@ -248,7 +247,7 @@ public class UsuarioDAOImpl implements UsuarioDAO {
             }
 
         } catch (SQLException e) {
-            log.error("Error en existeUsuario(): " + e.getMessage());
+            log.error("Error en existeUsuario()", e);
         }
         return false;
     }

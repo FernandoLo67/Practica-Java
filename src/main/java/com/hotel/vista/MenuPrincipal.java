@@ -54,12 +54,15 @@ public class MenuPrincipal extends JFrame {
     // =========================================================
     // COLORES DEL TEMA
     // =========================================================
-    // Colores del tema — reasignados en applyTheme() según el modo
-    private static Color COLOR_SIDEBAR;
-    private static Color COLOR_SIDEBAR_HOVER;
-    private static Color COLOR_SIDEBAR_BORDE;
-    private static Color COLOR_FONDO;
-    private static Color COLOR_HEADER;
+    // [A-01] Convertidos de static a instancia para que toggleModoOscuro()
+    // los reasigne correctamente antes de reconstruir el sidebar/header.
+    // Con static, si se abrían dos instancias (teóricamente imposible en esta app
+    // pero un error de diseño), compartirían estado de color.
+    private Color COLOR_SIDEBAR;
+    private Color COLOR_SIDEBAR_HOVER;
+    private Color COLOR_SIDEBAR_BORDE;
+    private Color COLOR_FONDO;
+    private Color COLOR_HEADER;
 
     /** Módulo que se muestra actualmente (para restaurarlo tras cambio de tema). */
     private String moduloActivo = "dashboard";
@@ -90,7 +93,7 @@ public class MenuPrincipal extends JFrame {
     }
 
     /** Aplica los colores del sidebar/header según el modo oscuro/claro actual. */
-    private static void aplicarTema() {
+    private void aplicarTema() {
         if (Tema.isModoOscuro()) {
             COLOR_SIDEBAR       = new Color(13,  17,  41);
             COLOR_SIDEBAR_HOVER = new Color(26,  31,  66);

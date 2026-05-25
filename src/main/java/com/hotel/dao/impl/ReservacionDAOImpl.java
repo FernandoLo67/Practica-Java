@@ -95,7 +95,7 @@ public class ReservacionDAOImpl implements ReservacionDAO {
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) lista.add(mapear(rs));
         } catch (SQLException e) {
-            log.error("Error en listarTodas(): " + e.getMessage());
+            log.error("Error en listarTodas()", e);
         }
         return lista;
     }
@@ -108,7 +108,7 @@ public class ReservacionDAOImpl implements ReservacionDAO {
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) lista.add(mapear(rs));
         } catch (SQLException e) {
-            log.error("Error en listarActivas(): " + e.getMessage());
+            log.error("Error en listarActivas()", e);
         }
         return lista;
     }
@@ -127,7 +127,7 @@ public class ReservacionDAOImpl implements ReservacionDAO {
                 while (rs.next()) lista.add(mapear(rs));
             }
         } catch (SQLException e) {
-            log.error("Error en buscar(): " + e.getMessage());
+            log.error("Error en buscar()", e);
         }
         return lista;
     }
@@ -141,7 +141,7 @@ public class ReservacionDAOImpl implements ReservacionDAO {
                 if (rs.next()) return mapear(rs);
             }
         } catch (SQLException e) {
-            log.error("Error en buscarPorId(): " + e.getMessage());
+            log.error("Error en buscarPorId()", e);
         }
         return null;
     }
@@ -168,7 +168,7 @@ public class ReservacionDAOImpl implements ReservacionDAO {
                 return true;
             }
         } catch (SQLException e) {
-            log.error("Error en guardar(): " + e.getMessage());
+            log.error("Error en guardar()", e);
         }
         return false;
     }
@@ -188,7 +188,7 @@ public class ReservacionDAOImpl implements ReservacionDAO {
 
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            log.error("Error en actualizar(): " + e.getMessage());
+            log.error("Error en actualizar()", e);
         }
         return false;
     }
@@ -201,7 +201,7 @@ public class ReservacionDAOImpl implements ReservacionDAO {
             ps.setInt   (2, id);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            log.error("Error en cambiarEstado(): " + e.getMessage());
+            log.error("Error en cambiarEstado()", e);
         }
         return false;
     }
@@ -213,7 +213,7 @@ public class ReservacionDAOImpl implements ReservacionDAO {
             ps.setInt(1, id);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            log.error("Error en eliminar(): " + e.getMessage());
+            log.error("Error en eliminar()", e);
         }
         return false;
     }
@@ -231,7 +231,7 @@ public class ReservacionDAOImpl implements ReservacionDAO {
                 if (rs.next()) return rs.getInt(1) == 0;
             }
         } catch (SQLException e) {
-            log.error("Error en habitacionDisponible(): " + e.getMessage());
+            log.error("Error en habitacionDisponible()", e);
         }
         return false;
     }
@@ -245,7 +245,7 @@ public class ReservacionDAOImpl implements ReservacionDAO {
                 if (rs.next()) return rs.getInt(1);
             }
         } catch (SQLException e) {
-            log.error("Error en contarPorEstado(): " + e.getMessage());
+            log.error("Error en contarPorEstado()", e);
         }
         return 0;
     }
@@ -261,7 +261,7 @@ public class ReservacionDAOImpl implements ReservacionDAO {
                 while (rs.next()) lista.add(mapear(rs));
             }
         } catch (SQLException e) {
-            log.error("Error en listarEnRango(): " + e.getMessage());
+            log.error("Error en listarEnRango()", e);
         }
         return lista;
     }

@@ -1,5 +1,6 @@
 package com.hotel.modelo;
 
+import com.hotel.util.HotelConfig;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.temporal.ChronoUnit;
@@ -100,11 +101,21 @@ public class Reservacion {
     }
 
     /**
-     * Calcula el total con impuesto (18% IGV).
-     * @return precio total con impuesto
+     * Calcula el total con impuesto usando la tasa configurada en HotelConfig.
+     * Centralizado aquí para que emails, calendario y UI usen siempre el mismo valor.
+     *
+     * @return precio total con impuesto (subtotal × (1 + IVA))
      */
     public double getTotalConImpuesto() {
-        return getTotalSinImpuesto() * 1.18;
+        return getTotalSinImpuesto() * (1.0 + HotelConfig.getIva());
+    }
+
+    /**
+     * Calcula el monto de impuesto sobre el subtotal.
+     * @return subtotal × IVA configurado
+     */
+    public double getImpuesto() {
+        return getTotalSinImpuesto() * HotelConfig.getIva();
     }
 
     @Override

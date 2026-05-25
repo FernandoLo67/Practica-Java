@@ -315,6 +315,7 @@ public class FacturasPanel extends JPanel {
         Factura f = facturaDAO.buscarPorId(id);
         if (f == null) return;
 
+        int pctIvaDetalle = (int) Math.round(HotelConfig.getIva() * 100);
         String detalle = String.format(
             "══════════════════════════════════\n" +
             "          FACTURA #%d\n" +
@@ -328,7 +329,7 @@ public class FacturasPanel extends JPanel {
             "Noches:        %d\n" +
             "──────────────────────────────────\n" +
             "Subtotal:      Q %.2f\n" +
-            "IVA (18%%):     Q %.2f\n" +
+            "IVA (" + pctIvaDetalle + "%%):     Q %.2f\n" +
             "TOTAL:         Q %.2f\n" +
             "──────────────────────────────────\n" +
             "Método de pago: %s\n" +
@@ -657,9 +658,10 @@ public class FacturasPanel extends JPanel {
                         String.format("%.2f", f.getSubtotal() / noches) + ")",
                     String.format("Q %.2f", f.getSubtotal()), new Color(240, 244, 255));
 
-                // Fila IVA
+                // Fila IVA — porcentaje dinámico desde HotelConfig
+                int pctIvaPdf = (int) Math.round(HotelConfig.getIva() * 100);
                 y = filaImporte(cs, colLabel, colValue, y, rowH,
-                    "IVA (18%)",
+                    "IVA (" + pctIvaPdf + "%)",
                     String.format("Q %.2f", f.getImpuesto()), Color.WHITE);
 
                 // Separador

@@ -94,13 +94,16 @@ public final class BackupService {
         }
 
         // Construir comando
+        // [C-03] SEGURIDAD: la contraseña NUNCA va como argumento CLI (visible en ps/Task Manager).
+        // Se pasa exclusivamente via variable de entorno MYSQL_PWD, que NO es visible
+        // para otros procesos del sistema en ningún SO soportado.
         List<String> cmd = new ArrayList<>();
         cmd.add(mysqldump);
         cmd.add("--host=" + host);
         cmd.add("--port=" + port);
         cmd.add("--user=" + user);
-        if (!pass.isEmpty()) cmd.add("--password=" + pass);
-        cmd.add("--single-transaction");   // consistente sin bloquear
+        // SIN --password=xxx aquí — se inyecta vía MYSQL_PWD en el entorno del proceso
+        cmd.add("--single-transaction");   // backup consistente sin bloquear tablas
         cmd.add("--routines");
         cmd.add("--triggers");
         cmd.add("--add-drop-table");
@@ -109,8 +112,11 @@ public final class BackupService {
 
         try {
             ProcessBuilder pb = new ProcessBuilder(cmd);
-            pb.redirectErrorStream(true);           // stderr → stdout
-            pb.environment().put("MYSQL_PWD", pass); // evitar warning de contraseña en consola
+            pb.redirectErrorStream(true);
+            // Contraseña en variable de entorno del proceso hijo — no expuesta al sistema
+            if (!pass.isEmpty()) {
+                pb.environment().put("MYSQL_PWD", pass);
+            }
 
             Process proc = pb.start();
 

@@ -16,6 +16,9 @@ package com.hotel.exception;
  */
 public class HotelException extends RuntimeException {
 
+    /** Requerido por Serializable. Fijo en 1L para estabilidad entre compilaciones. */
+    private static final long serialVersionUID = 1L;
+
     private final String codigoError;
 
     public HotelException(String mensaje) {

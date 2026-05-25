@@ -81,15 +81,26 @@ public final class ConexionDB {
             String user     = props.getProperty("db.user",     "root");
             String password = props.getProperty("db.password", "");
 
+            // [A-04] SSL configurable: false en desarrollo local, true en producción.
+            // Para activar SSL en producción agregar en database.properties:
+            //   db.ssl=true
+            //   db.ssl.verifyServer=true  (requiere certificado en el servidor MySQL)
+            boolean useSSL         = Boolean.parseBoolean(props.getProperty("db.ssl",              "false"));
+            boolean verifyServer   = Boolean.parseBoolean(props.getProperty("db.ssl.verifyServer", "false"));
+            // allowPublicKeyRetrieval solo es necesario cuando SSL=false con caching_sha2_password
+            boolean allowPubKey    = !useSSL;
+
             String url = String.format(
                 "jdbc:mysql://%s:%s/%s" +
-                "?useSSL=false" +
+                "?useSSL=%b" +
+                "&verifyServerCertificate=%b" +
+                "&allowPublicKeyRetrieval=%b" +
                 "&serverTimezone=UTC" +
-                "&allowPublicKeyRetrieval=true" +
                 "&useUnicode=true" +
-                "&characterEncoding=UTF-8" +
-                "&autoReconnect=true",
-                host, port, name
+                "&characterEncoding=UTF-8",
+                // autoReconnect eliminado: está deprecated en MySQL 8+ y HikariCP
+                // maneja reconexión correctamente con keepaliveTime y connectionTestQuery
+                host, port, name, useSSL, verifyServer, allowPubKey
             );
 
             HikariConfig config = new HikariConfig();

@@ -10,19 +10,42 @@ import org.slf4j.LoggerFactory;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 
 /**
  * Implementación JDBC de BitacoraDAO.
  *
- * Las escrituras nunca lanzan excepciones al llamador — si falla,
- * solo se registra en el log para no interrumpir el flujo normal.
+ * Las escrituras son asíncronas y nunca bloquean la UI.
+ * Se usa un ExecutorService con pool fijo (2 hilos) para evitar
+ * la creación de hilos ilimitados ante carga alta.
+ *
+ * [A-03] Reemplazado new Thread(...).start() por ExecutorService.
+ * Los hilos son daemon para no bloquear el shutdown de la JVM.
  *
  * @author Fernando
- * @version 1.0
+ * @version 1.1
  */
 public class BitacoraDAOImpl implements BitacoraDAO {
 
     private static final Logger log = LoggerFactory.getLogger(BitacoraDAOImpl.class);
+
+    /**
+     * Pool de 2 hilos daemon para insertar en bitácora sin bloquear la UI.
+     * Fijo en 2 porque las inserciones son rápidas y la BD es la misma.
+     * Al ser daemon, no impide el cierre normal de la aplicación.
+     */
+    private static final ExecutorService BITACORA_EXECUTOR =
+        Executors.newFixedThreadPool(2, new ThreadFactory() {
+            private int count = 0;
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread t = new Thread(r, "bitacora-worker-" + ++count);
+                t.setDaemon(true);  // no bloquea el shutdown de la JVM
+                return t;
+            }
+        });
 
     private static final String SQL_INSERT =
         "INSERT INTO bitacora (id_usuario, usuario_nombre, accion, modulo, descripcion) " +
@@ -46,8 +69,8 @@ public class BitacoraDAOImpl implements BitacoraDAO {
 
     @Override
     public void registrar(Bitacora b) {
-        // Se ejecuta en un hilo separado para no bloquear la UI
-        new Thread(() -> {
+        // [A-03] ExecutorService con pool fijo en lugar de new Thread ilimitado
+        BITACORA_EXECUTOR.submit(() -> {
             try (Connection conn = ConexionDB.getConexion();
                  PreparedStatement ps = conn.prepareStatement(SQL_INSERT)) {
 

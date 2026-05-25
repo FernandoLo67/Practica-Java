@@ -150,6 +150,7 @@ public final class HotelConfig {
         p.setProperty("hotel.email",     DEF_EMAIL);
         p.setProperty("hotel.nit",       DEF_NIT);
         p.setProperty("hotel.web",       DEF_WEB);
+        p.setProperty("hotel.iva",       String.valueOf(DEF_IVA)); // incluido para que no se pierda al regenerar
         return p;
     }
 }

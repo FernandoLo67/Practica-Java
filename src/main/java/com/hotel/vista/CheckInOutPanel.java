@@ -1,11 +1,15 @@
 package com.hotel.vista;
 
 import com.hotel.dao.impl.HabitacionDAOImpl;
+import com.hotel.util.ConexionDB;
+import com.hotel.util.HotelConfig;
 import com.hotel.util.Tema;
 import com.hotel.dao.impl.ReservacionDAOImpl;
 import com.hotel.dao.impl.FacturaDAOImpl;
 import com.hotel.modelo.*;
 import com.hotel.util.BitacoraService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -14,6 +18,11 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 
 /**
@@ -23,10 +32,17 @@ import java.util.List;
  * CHECK-OUT: Reservaciones en CHECKIN  → pasan a CHECKOUT, habitación a DISPONIBLE,
  *            se genera la factura automáticamente.
  *
+ * CAMBIOS v1.2:
+ *   - [C-01] IVA tomado de HotelConfig — texto "IVA (X%)" dinámico.
+ *   - [C-02] Checkout ejecuta las 3 operaciones SQL dentro de una única
+ *            transacción con commit/rollback automático ante fallo.
+ *
  * @author Fernando
- * @version 1.0
+ * @version 1.2
  */
 public class CheckInOutPanel extends JPanel {
+
+    private static final Logger log = LoggerFactory.getLogger(CheckInOutPanel.class);
 
     private JTable            tablaCheckin;
     private JTable            tablaCheckout;
@@ -52,6 +68,17 @@ public class CheckInOutPanel extends JPanel {
     private static final String[] COLS = {
         "ID", "Cliente", "Habitación", "Tipo", "Check-In", "Check-Out", "Noches", "Total (Q)"
     };
+
+    // =========================================================
+    // SQL para la transacción atómica de checkout (C-02)
+    // =========================================================
+    private static final String SQL_CHECKOUT_RESERVACION =
+        "UPDATE reservaciones SET estado = 'CHECKOUT' WHERE id = ?";
+    private static final String SQL_CHECKOUT_HABITACION =
+        "UPDATE habitaciones SET estado = 'DISPONIBLE' WHERE id = ?";
+    private static final String SQL_CHECKOUT_FACTURA =
+        "INSERT INTO facturas (id_reservacion, subtotal, impuesto, total, estado, metodo_pago) " +
+        "VALUES (?, ?, ?, ?, 'PAGADA', ?)";
 
     public CheckInOutPanel(Frame ventanaPadre, Usuario usuarioActual) {
         this.ventanaPadre  = ventanaPadre;
@@ -148,7 +175,7 @@ public class CheckInOutPanel extends JPanel {
         tabla.getTableHeader().setForeground(COLOR_PRIMARIO);
         tabla.setRowSorter(new TableRowSorter<>(modelo));
 
-        // Ocultar ID
+        // Ocultar columna ID
         tabla.getColumnModel().getColumn(0).setMinWidth(0);
         tabla.getColumnModel().getColumn(0).setMaxWidth(0);
         tabla.getColumnModel().getColumn(0).setWidth(0);
@@ -184,8 +211,8 @@ public class CheckInOutPanel extends JPanel {
         );
 
         if (esCheckin) {
-            modeloCheckin  = modelo;
-            tablaCheckin   = tabla;
+            modeloCheckin = modelo;
+            tablaCheckin  = tabla;
             btnAccion.addActionListener(e -> hacerCheckin());
         } else {
             modeloCheckout = modelo;
@@ -193,9 +220,9 @@ public class CheckInOutPanel extends JPanel {
             btnAccion.addActionListener(e -> hacerCheckout());
         }
 
-        panel.add(header,     BorderLayout.NORTH);
-        panel.add(scroll,     BorderLayout.CENTER);
-        panel.add(btnAccion,  BorderLayout.SOUTH);
+        panel.add(header,    BorderLayout.NORTH);
+        panel.add(scroll,    BorderLayout.CENTER);
+        panel.add(btnAccion, BorderLayout.SOUTH);
 
         return panel;
     }
@@ -273,14 +300,15 @@ public class CheckInOutPanel extends JPanel {
                 "Check-In: " + cliente + " — Hab. " + hab +
                 " — Checkout: " + r.getFechaCheckout());
             JOptionPane.showMessageDialog(this,
-                "✅  Check-In registrado para " + cliente + ".\nHabitación " + hab + " marcada como OCUPADA.",
+                "✅  Check-In registrado para " + cliente +
+                ".\nHabitación " + hab + " marcada como OCUPADA.",
                 "Check-In Exitoso", JOptionPane.INFORMATION_MESSAGE);
             cargarDatos();
         }
     }
 
     // =========================================================
-    // CHECK-OUT
+    // CHECK-OUT  [C-02] — transacción atómica
     // =========================================================
 
     private void hacerCheckout() {
@@ -292,45 +320,129 @@ public class CheckInOutPanel extends JPanel {
         Reservacion r = reservacionDAO.buscarPorId(id);
         if (r == null) return;
 
-        // Selección de método de pago
+        // [C-01] Total con IVA configurado (no hardcoded)
+        double subtotal = r.getTotalSinImpuesto();
+        double impuesto = r.getImpuesto();
+        double total    = r.getTotalConImpuesto();
+        int    pctIva   = (int) Math.round(HotelConfig.getIva() * 100);
+
+        // Selección del método de pago
         String[] metodos = {"EFECTIVO", "TARJETA", "TRANSFERENCIA"};
         String metodo = (String) JOptionPane.showInputDialog(this,
             "Cliente:     " + r.getCliente().getNombreCompleto() + "\n" +
             "Habitación:  " + r.getHabitacion().getNumero() + "\n" +
             "Noches:      " + r.getNoches() + "\n" +
-            "Total:       Q " + String.format("%.2f", r.getTotalSinImpuesto()) + "\n\n" +
+            "Subtotal:    Q " + String.format("%.2f", subtotal) + "\n" +
+            "IVA (" + pctIva + "%): Q " + String.format("%.2f", impuesto) + "\n" +
+            "TOTAL:       Q " + String.format("%.2f", total) + "\n\n" +
             "Selecciona el método de pago:",
             "Registrar Check-Out", JOptionPane.PLAIN_MESSAGE,
             null, metodos, metodos[0]);
 
-        if (metodo == null) return;
+        if (metodo == null) return; // usuario canceló
 
-        // Actualizar estados
-        reservacionDAO.cambiarEstado(id, Reservacion.ESTADO_CHECKOUT);
-        habitacionDAO.cambiarEstado(r.getHabitacion().getId(), "DISPONIBLE");
+        // [C-02] Ejecutar las 3 operaciones en una sola transacción
+        Factura facturaGenerada = ejecutarCheckoutAtomico(r, metodo, subtotal, impuesto, total);
 
-        // Generar factura automáticamente
-        Factura factura = new Factura(r, metodo);
-        facturaDAO.guardar(factura);
+        if (facturaGenerada == null) {
+            // El método interno ya mostró el error
+            return;
+        }
+
+        // Auditoría (fuera de la transacción — no crítica para atomicidad)
         BitacoraService.log(usuarioActual, Bitacora.ACCION_CHECKOUT,
             Bitacora.MODULO_CHECKINOUT,
             "Check-Out: " + r.getCliente().getNombreCompleto() +
             " — Hab. " + r.getHabitacion().getNumero() +
-            " — Total: Q" + String.format("%.2f", factura.getTotal()) +
+            " — Total: Q" + String.format("%.2f", facturaGenerada.getTotal()) +
             " — Pago: " + metodo);
 
+        // [A-06] Texto IVA dinámico
         JOptionPane.showMessageDialog(this,
             "🏁  Check-Out registrado.\n\n" +
-            "  Cliente:      " + r.getCliente().getNombreCompleto() + "\n" +
-            "  Habitación:   " + r.getHabitacion().getNumero() + " → DISPONIBLE\n" +
-            "  Subtotal:     Q " + String.format("%.2f", factura.getSubtotal()) + "\n" +
-            "  IVA (18%):    Q " + String.format("%.2f", factura.getImpuesto()) + "\n" +
-            "  TOTAL:        Q " + String.format("%.2f", factura.getTotal()) + "\n" +
-            "  Método pago:  " + metodo + "\n\n" +
-            "  Factura #" + factura.getId() + " generada correctamente.",
+            "  Cliente:        " + r.getCliente().getNombreCompleto() + "\n" +
+            "  Habitación:     " + r.getHabitacion().getNumero() + " → DISPONIBLE\n" +
+            "  Subtotal:       Q " + String.format("%.2f", facturaGenerada.getSubtotal()) + "\n" +
+            "  IVA (" + pctIva + "%):     Q " + String.format("%.2f", facturaGenerada.getImpuesto()) + "\n" +
+            "  TOTAL:          Q " + String.format("%.2f", facturaGenerada.getTotal()) + "\n" +
+            "  Método de pago: " + metodo + "\n\n" +
+            "  Factura #" + facturaGenerada.getId() + " generada correctamente.",
             "Check-Out Exitoso", JOptionPane.INFORMATION_MESSAGE);
 
         cargarDatos();
+    }
+
+    /**
+     * Ejecuta el checkout en una transacción SQL única.
+     *
+     * Las tres operaciones (cambiar reservación → liberar habitación → crear factura)
+     * se ejecutan sobre la misma conexión con autoCommit=false.
+     * Si cualquiera falla, se hace rollback automático y se devuelve null.
+     *
+     * @return Factura generada con ID asignado, o null si falló
+     */
+    private Factura ejecutarCheckoutAtomico(
+            Reservacion r, String metodo,
+            double subtotal, double impuesto, double total) {
+
+        try (Connection conn = ConexionDB.getConexion()) {
+            conn.setAutoCommit(false); // iniciar transacción
+
+            try {
+                // 1. Reservación → CHECKOUT
+                try (PreparedStatement ps = conn.prepareStatement(SQL_CHECKOUT_RESERVACION)) {
+                    ps.setInt(1, r.getId());
+                    ps.executeUpdate();
+                }
+
+                // 2. Habitación → DISPONIBLE
+                try (PreparedStatement ps = conn.prepareStatement(SQL_CHECKOUT_HABITACION)) {
+                    ps.setInt(1, r.getHabitacion().getId());
+                    ps.executeUpdate();
+                }
+
+                // 3. Crear factura y recuperar ID generado
+                Factura factura = new Factura(r, metodo);
+                try (PreparedStatement ps = conn.prepareStatement(
+                        SQL_CHECKOUT_FACTURA, Statement.RETURN_GENERATED_KEYS)) {
+                    ps.setInt   (1, r.getId());
+                    ps.setDouble(2, subtotal);
+                    ps.setDouble(3, impuesto);
+                    ps.setDouble(4, total);
+                    ps.setString(5, metodo);
+                    ps.executeUpdate();
+                    try (ResultSet keys = ps.getGeneratedKeys()) {
+                        if (keys.next()) factura.setId(keys.getInt(1));
+                    }
+                }
+
+                conn.commit(); // todo OK — confirmar
+                log.info("Checkout atómico completado: reservación #{}, factura #{}",
+                    r.getId(), factura.getId());
+                return factura;
+
+            } catch (SQLException ex) {
+                // Revertir TODO si cualquier paso falló
+                try { conn.rollback(); } catch (SQLException rb) {
+                    log.error("Error al hacer rollback en checkout", rb);
+                }
+                log.error("Fallo en checkout atómico — reservación #{}", r.getId(), ex);
+                JOptionPane.showMessageDialog(this,
+                    "⚠  No se pudo completar el Check-Out.\n\n" +
+                    "Ningún dato fue modificado (rollback aplicado).\n" +
+                    "Error: " + ex.getMessage(),
+                    "Error en Check-Out", JOptionPane.ERROR_MESSAGE);
+                return null;
+            }
+
+        } catch (SQLException connEx) {
+            log.error("Sin conexión disponible para checkout — reservación #{}", r.getId(), connEx);
+            JOptionPane.showMessageDialog(this,
+                "⚠  No hay conexión disponible con la base de datos.\n" +
+                "Verifica que MySQL esté corriendo.",
+                "Error de Conexión", JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
     }
 
     // =========================================================
