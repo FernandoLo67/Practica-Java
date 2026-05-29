@@ -2,6 +2,7 @@ package com.hotel;
 
 import com.hotel.util.ConexionDB;
 import com.hotel.util.HotelConfig;
+import com.hotel.util.RecordatorioCheckinService;
 import com.hotel.vista.LoginForm;
 
 import javax.swing.*;
@@ -57,6 +58,9 @@ public class Main {
             SwingUtilities.invokeLater(() -> mostrarErrorConexion(e));
             return;
         }
+
+        // Scheduler de recordatorios pre-checkin (daemon — no bloquea el cierre)
+        RecordatorioCheckinService.iniciar();
 
         // Iniciar la interfaz gráfica en el hilo de eventos de Swing (EDT)
         // SIEMPRE se debe crear la UI en el EDT para evitar problemas de concurrencia

@@ -5,6 +5,8 @@ import com.hotel.modelo.Bitacora;
 import com.hotel.modelo.Usuario;
 import com.hotel.util.BitacoraService;
 import com.hotel.util.SesionActual;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -38,6 +40,8 @@ public class LoginForm extends JFrame {
     private JButton       btnLogin;
     private JLabel        lblMensaje;
     private JCheckBox     chkMostrarPass;
+
+    private static final Logger log = LoggerFactory.getLogger(LoginForm.class);
 
     // DAO para verificar las credenciales en la base de datos
     private final UsuarioDAOImpl usuarioDAO;
@@ -359,21 +363,23 @@ public class LoginForm extends JFrame {
             }
 
         } catch (Exception ex) {
-            // Error de conexión a la base de datos
-            mostrarError("✗  Error de conexión a la base de datos");
+            log.error("Error de conexión durante el login", ex);
+            mostrarError("✗  No se pudo conectar a la base de datos");
             btnLogin.setEnabled(true);
-            btnLogin.setText("INGRESAR");
-            ex.printStackTrace();
+            btnLogin.setText("Aceptar");
 
-            // Mostrar detalle del error al usuario
+            // Mensaje amigable — sin referencias a clases internas
+            String detalle = ex.getMessage() != null
+                ? ex.getMessage().split("\n")[0]   // solo primera línea
+                : ex.getClass().getSimpleName();
             JOptionPane.showMessageDialog(
                 this,
                 "No se pudo conectar a la base de datos.\n\n" +
                 "Verifica que:\n" +
-                "  • MySQL esté corriendo\n" +
-                "  • La base de datos 'hotel_sistema' exista\n" +
-                "  • La contraseña en ConexionDB.java sea correcta\n\n" +
-                "Error técnico: " + ex.getMessage(),
+                "  • MySQL Server esté en ejecución\n" +
+                "  • El schema 'hotel_sistema' exista\n" +
+                "  • Las credenciales en database.properties sean correctas\n\n" +
+                "Error: " + detalle,
                 "Error de Conexión",
                 JOptionPane.ERROR_MESSAGE
             );

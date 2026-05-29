@@ -83,6 +83,14 @@ public class ReservacionDAOImpl implements ReservacionDAO {
         "AND NOT (r.fecha_checkout <= ? OR r.fecha_checkin >= ?) " +
         "ORDER BY r.fecha_checkin ASC";
 
+    /** Check-in = mañana, cliente con email, estado activo — para recordatorios */
+    private static final String SQL_CHECKIN_MANANA =
+        SQL_BASE +
+        "WHERE r.fecha_checkin = DATE_ADD(CURDATE(), INTERVAL 1 DAY) " +
+        "  AND r.estado IN ('CONFIRMADA','PENDIENTE') " +
+        "  AND c.email IS NOT NULL AND c.email != '' " +
+        "ORDER BY r.id ASC";
+
     // =========================================================
     // IMPLEMENTACIÓN
     // =========================================================
@@ -262,6 +270,19 @@ public class ReservacionDAOImpl implements ReservacionDAO {
             }
         } catch (SQLException e) {
             log.error("Error en listarEnRango()", e);
+        }
+        return lista;
+    }
+
+    @Override
+    public List<Reservacion> listarCheckinManana() {
+        List<Reservacion> lista = new ArrayList<>();
+        try (Connection conn = ConexionDB.getConexion();
+             PreparedStatement ps = conn.prepareStatement(SQL_CHECKIN_MANANA);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) lista.add(mapear(rs));
+        } catch (SQLException e) {
+            log.error("Error en listarCheckinManana()", e);
         }
         return lista;
     }

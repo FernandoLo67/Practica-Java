@@ -44,4 +44,10 @@ public interface ReservacionDAO {
 
     /** Retorna reservaciones cuyo período se solapa con el rango dado (excluye CANCELADA) */
     List<Reservacion> listarEnRango(Date desde, Date hasta);
+
+    /**
+     * Retorna reservaciones con check-in = mañana (estado CONFIRMADA o PENDIENTE)
+     * cuyo cliente tiene email registrado. Usado por el scheduler de recordatorios.
+     */
+    List<Reservacion> listarCheckinManana();
 }

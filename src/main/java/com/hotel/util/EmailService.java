@@ -16,6 +16,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Servicio de envío de correos electrónicos.
@@ -37,6 +39,14 @@ public final class EmailService {
 
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
     private static final SimpleDateFormat FMT = new SimpleDateFormat("dd/MM/yyyy");
+
+    /** Pool de hilos para envíos asíncronos — evita crear hilos sin límite */
+    private static final ExecutorService EMAIL_EXECUTOR =
+        Executors.newFixedThreadPool(3, r -> {
+            Thread t = new Thread(r, "email-sender");
+            t.setDaemon(true);
+            return t;
+        });
 
     // =========================================================
     // CONFIGURACIÓN (cargada una sola vez)
@@ -114,7 +124,7 @@ public final class EmailService {
             return;
         }
 
-        new Thread(() -> {
+        EMAIL_EXECUTOR.submit(() -> {
             try {
                 String destinatario = res.getCliente().getEmail();
                 String asunto       = "✅ Confirmación de reservación — Hotel Vista";
@@ -126,7 +136,7 @@ public final class EmailService {
             } catch (Exception e) {
                 log.error("Error enviando confirmación de reservación", e);
             }
-        }, "EmailSender").start();
+        });
     }
 
     /**
@@ -144,7 +154,7 @@ public final class EmailService {
         String email = res.getCliente().getEmail();
         if (email == null || email.isBlank()) return false;
 
-        new Thread(() -> {
+        EMAIL_EXECUTOR.submit(() -> {
             try {
                 String asunto = "🧾 Factura #" + factura.getId() + " — Hotel Vista";
                 String html   = construirHtmlFactura(factura);
@@ -154,7 +164,7 @@ public final class EmailService {
             } catch (Exception e) {
                 log.error("Error enviando factura PDF a {}", email, e);
             }
-        }, "EmailFactura").start();
+        });
 
         return true;
     }
@@ -169,7 +179,7 @@ public final class EmailService {
         if (!habilitado) return;
         if (res.getCliente() == null || res.getCliente().getEmail() == null) return;
 
-        new Thread(() -> {
+        EMAIL_EXECUTOR.submit(() -> {
             try {
                 String destinatario = res.getCliente().getEmail();
                 String hotelNombre  = HotelConfig.getNombre();
@@ -180,7 +190,7 @@ public final class EmailService {
             } catch (Exception e) {
                 log.error("Error enviando recordatorio pre-checkin (res #{})", res.getId(), e);
             }
-        }, "EmailRecordatorio-" + res.getId()).start();
+        });
     }
 
     private static String construirHtmlRecordatorio(Reservacion res) {
