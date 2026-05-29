@@ -1,5 +1,6 @@
 package com.hotel.modelo;
 
+import com.hotel.util.HotelConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -108,13 +109,15 @@ class ReservacionTest {
     // =========================================================
 
     @Test
-    @DisplayName("getTotalConImpuesto() aplica 18% correctamente")
+    @DisplayName("getTotalConImpuesto() aplica el IVA de HotelConfig correctamente")
     void getTotalConImpuesto_aplica18Porciento() {
         reservacion.setFechaCheckin(Date.valueOf(LocalDate.of(2024, 6, 1)));
         reservacion.setFechaCheckout(Date.valueOf(LocalDate.of(2024, 6, 3))); // 2 noches
 
-        // 2 × Q500 = Q1000 + 18% = Q1180
-        assertEquals(1180.00, reservacion.getTotalConImpuesto(), 0.001);
+        // 2 × Q500 = Q1000 — el IVA viene de HotelConfig (configurable, no hardcoded)
+        double subtotal = reservacion.getTotalSinImpuesto();
+        double esperado = subtotal * (1.0 + HotelConfig.getIva());
+        assertEquals(esperado, reservacion.getTotalConImpuesto(), 0.001);
     }
 
     // =========================================================

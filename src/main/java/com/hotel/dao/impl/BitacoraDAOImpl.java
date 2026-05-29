@@ -90,7 +90,7 @@ public class BitacoraDAOImpl implements BitacoraDAO {
             } catch (Exception e) {
                 log.error("No se pudo registrar en bitácora: {}", b, e);
             }
-        }, "bitacora-insert").start();
+        });
     }
 
     // =========================================================
