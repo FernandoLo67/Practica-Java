@@ -4,7 +4,7 @@
 .claude/
 
 # Credenciales de base de datos (NUNCA subir a GitHub)
-src/main/resources/database.properties
+# src/main/resources/database.properties#
 
 # NetBeans
 nbproject/private/
