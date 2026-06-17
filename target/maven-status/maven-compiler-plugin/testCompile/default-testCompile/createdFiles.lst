@@ -1,0 +1,13 @@
+com\hotel\util\ValidacionesTest$Documento.class
+com\hotel\util\ValidacionesTest$Numeros.class
+com\hotel\dao\HabitacionDAOIntegrationTest.class
+com\hotel\modelo\ReservacionTest.class
+com\hotel\util\ValidacionesTest$NoEstaVacio.class
+com\hotel\util\ValidacionesTest$ValidarTexto.class
+com\hotel\dao\ClienteDAOIntegrationTest.class
+com\hotel\util\PasswordUtilTest.class
+com\hotel\util\ValidacionesTest.class
+com\hotel\util\ValidacionesTest$Utilidades.class
+com\hotel\util\ValidacionesTest$Password.class
+com\hotel\dao\ReservacionDAOIntegrationTest.class
+com\hotel\util\ValidacionesTest$Email.class
